@@ -10,6 +10,9 @@ enum Role {
   USER
   ADMIN
   SUPER_ADMIN
+  MANAGER
+  PRODUCER
+  ARTISAN
 }
 
 enum OtpPurpose {
@@ -34,27 +37,47 @@ enum OrderStatus {
 }
 
 model Outlet {
-  id          String    @id @default(uuid())
-  key         String    @unique
+  id          String  @id @default(uuid())
+  key         String  @unique
   name        String
   description String?
-  isActive    Boolean   @default(true)
-  products    Product[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isActive    Boolean @default(true)
+
+  monthlyCapacity Int?
+  qualityScore    Float?  @default(0)
+  address         String?
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  ownerId String?
+  owner   User?   @relation("OutletOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  products Product[]
+  regionId String?
+  region   Region?   @relation(fields: [regionId], references: [id], onDelete: SetNull)
+
+  productionBatches ProductionBatch[]
+  payouts           Payout[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([isActive])
+  @@index([regionId])
+  @@index([ownerId])
+  @@index([categoryId])
 }
 
 model User {
-  id              String      @id @default(uuid())
+  id              String                       @id @default(uuid())
   name            String
-  email           String      @unique
-  mobile          String      @unique
+  email           String                       @unique
+  mobile          String                       @unique
   avatar          String?
   password        String
-  role            Role        @default(USER)
-  isEmailVerified Boolean     @default(false)
+  role            Role                         @default(USER)
+  isEmailVerified Boolean                      @default(false)
   otp             String?
   otpExpiry       DateTime?
   otpPurpose      OtpPurpose?
@@ -67,14 +90,16 @@ model User {
   contactQueries  ContactUsQuery[]
   bulkInquiries   BulkOrderInquiry[]
   helpRequests    PaymentDeliveryHelpRequest[]
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  managedRegions  Region[]                     @relation("RegionManager")
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+  ownedOutlets    Outlet[]                     @relation("OutletOwner")
 
   @@index([isEmailVerified])
 }
 
 model Product {
-  id               String         @id @default(uuid())
+  id                String         @id @default(uuid())
   outletId          String
   outlet            Outlet         @relation(fields: [outletId], references: [id], onDelete: Restrict)
   title             String
@@ -85,6 +110,8 @@ model Product {
   district          String
   price             Float
   stock             Int            @default(0)
+  categoryId        String
+  category          Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   images            ProductImage[]
   reviews           Review[]
   wishlist          Wishlist[]
@@ -114,17 +141,17 @@ model ProductImage {
 }
 
 model Review {
-  id        String        @id @default(uuid())
-  userId    String
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  rating    Int
-  comment   String?
-  wouldRecommend Boolean   @default(true)
-  images    ReviewImage[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  rating         Int
+  comment        String?
+  wouldRecommend Boolean       @default(true)
+  images         ReviewImage[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([userId])
   @@index([productId])
@@ -262,4 +289,68 @@ model Order {
   @@index([addressId])
   @@index([productId])
   @@index([status])
+}
+
+model Region {
+  id       String  @id @default(uuid())
+  name     String  @unique
+  isActive Boolean @default(true)
+
+  managerId String?
+  manager   User?   @relation("RegionManager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  outlets Outlet[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([managerId])
+  @@index([categoryId])
+}
+
+model Category {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+
+  products Product[]
+  regions  Region[]
+  outlets  Outlet[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+model ProductionBatch {
+  id            String   @id @default(uuid())
+  outletId      String
+  outlet        Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  title         String?
+  unitCount     Int
+  qualityStatus String   @default("PENDING")
+  isApproved    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([outletId])
+}
+
+model Payout {
+  id        String   @id @default(uuid())
+  outletId  String
+  outlet    Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  amount    Float
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([outletId])
 }

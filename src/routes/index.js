@@ -14,6 +14,12 @@ import bulkOrderInquiryRouter from "../modules/bulk-order-inquiry/bulk-order-inq
 import helpRequestRouter from "../modules/help-request/help-request.routes.js";
 import userProfileRouter from "../modules/user-profile/user-profile.routes.js";
 import adminDashboardRoutes from '../modules/admin/dashboard.routes.js';
+import adminCategoryRoutes from '../modules/category/admin-category.routes.js';
+import adminRegionRoutes from '../modules/region/admin-region.routes.js';
+import staffRoutes from '../modules/admin/staff.routes.js';
+import adminOutletRoutes from '../modules/outlet/admin-outlet.routes.js';
+import adminArtisanRoutes from '../modules/artisan/admin-artisan.routes.js';
+import adminOrderRoutes from '../modules/order/admin-order.routes.js';
 
 const router = Router();
 
@@ -35,5 +41,11 @@ router.use("/bulk-order-inquiries", bulkOrderInquiryRouter);
 router.use("/payment-delivery-help", helpRequestRouter);
 router.use("/profile", userProfileRouter);
 router.use("/admin", adminDashboardRoutes);
+router.use("/admin/categories", adminCategoryRoutes);
+router.use("/admin/regions", adminRegionRoutes);
+router.use("/admin/staff", staffRoutes);
+router.use("/admin/outlets", adminOutletRoutes);
+router.use("/admin/artisans", adminArtisanRoutes);
+router.use("/admin/orders", adminOrderRoutes);
 
 export default router;

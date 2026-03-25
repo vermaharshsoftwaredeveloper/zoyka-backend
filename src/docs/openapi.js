@@ -414,10 +414,176 @@ const openApiSpec = {
           },
         },
       },
+      Category: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          name: { type: "string", example: "Spices" },
+          slug: { type: "string", example: "spices" },
+          description: { type: "string", nullable: true, example: "Fresh organic spices" },
+          isActive: { type: "boolean", example: true },
+          _count: {
+            type: "object",
+            properties: {
+              products: { type: "integer", example: 12 },
+            },
+          },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      CreateCategoryRequest: {
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: { type: "string", example: "Handicrafts" },
+          slug: { type: "string", example: "handicrafts" },
+          description: { type: "string", example: "Local handmade crafts" },
+        },
+      },
+      UpdateCategoryRequest: {
+        type: "object",
+        properties: {
+          name: { type: "string", example: "Updated Spices" },
+          slug: { type: "string", example: "updated-spices" },
+          description: { type: "string", example: "Updated description here" },
+        },
+      },
+      Region: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          name: { type: "string", example: "Warangal" },
+          isActive: { type: "boolean", example: true },
+          category: {
+            type: "object",
+            nullable: true,
+            properties: {
+              id: { type: "string", format: "uuid" },
+              name: { type: "string", example: "Handicrafts" }
+            }
+          },
+          manager: {
+            type: "object",
+            nullable: true,
+            properties: {
+              id: { type: "string", format: "uuid" },
+              name: { type: "string", example: "Rahul Manager" },
+              email: { type: "string", format: "email", example: "rahul@zoyka.com" },
+            }
+          },
+          totalOutlets: { type: "integer", example: 15 },
+          activeProducersCount: { type: "integer", example: 12 },
+        },
+      },
+      CreateRegionRequest: {
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: { type: "string", example: "Warangal" },
+          managerId: { type: "string", format: "uuid", nullable: true, example: "123e4567-e89b-12d3-a456-426614174000" },
+          categoryId: { type: "string", format: "uuid", nullable: true, example: "987e6543-e21b-12d3-a456-426614174000" },
+        },
+      },
+      UpdateRegionRequest: {
+        type: "object",
+        properties: {
+          name: { type: "string", example: "South Telangana" },
+          managerId: { type: "string", format: "uuid", nullable: true },
+          categoryId: { type: "string", format: "uuid", nullable: true },
+        },
+      },
+      OperationalManager: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          name: { type: "string", example: "Rahul Manager" },
+          email: { type: "string", format: "email", example: "rahul@zoyka.com" },
+          mobile: { type: "string", example: "9876543210" },
+          avatar: { type: "string", format: "uri", nullable: true },
+          role: { type: "string", example: "MANAGER" },
+          isEmailVerified: { type: "boolean", example: true },
+          createdAt: { type: "string", format: "date-time" },
+          managedRegions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string", format: "uuid" },
+                name: { type: "string", example: "North Telangana" },
+                isActive: { type: "boolean", example: true },
+                _count: {
+                  type: "object",
+                  properties: {
+                    outlets: { type: "integer", example: 3 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      ProducerAdminView: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          key: { type: "string", example: "kisan-setu" },
+          name: { type: "string", example: "Kisan Setu" },
+          description: { type: "string", nullable: true, example: "Organic farming collective" },
+          isActive: { type: "boolean", example: true },
+          regionId: { type: "string", format: "uuid", nullable: true },
+          ownerId: { type: "string", format: "uuid", nullable: true },
+          region: {
+            type: "object",
+            nullable: true,
+            properties: {
+              name: { type: "string", example: "North Telangana" }
+            }
+          },
+          owner: {
+            type: "object",
+            nullable: true,
+            properties: {
+              name: { type: "string", example: "Ramesh Farmer" },
+              email: { type: "string", format: "email", example: "ramesh@producer.com" },
+              mobile: { type: "string", example: "9876543210" }
+            }
+          },
+          _count: {
+            type: "object",
+            properties: {
+              products: { type: "integer", example: 45 }
+            }
+          },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      CreateProducerRequest: {
+        type: "object",
+        required: ["key", "name"],
+        properties: {
+          key: { type: "string", example: "karigar-hub" },
+          name: { type: "string", example: "Karigar Hub" },
+          description: { type: "string", nullable: true, example: "Handcrafted wooden toys" },
+          regionId: { type: "string", format: "uuid", nullable: true },
+          ownerId: { type: "string", format: "uuid", nullable: true },
+        },
+      },
+      UpdateProducerRequest: {
+        type: "object",
+        properties: {
+          key: { type: "string", example: "karigar-hub-v2" },
+          name: { type: "string", example: "Karigar Hub Premium" },
+          description: { type: "string", nullable: true },
+          regionId: { type: "string", format: "uuid", nullable: true },
+          ownerId: { type: "string", format: "uuid", nullable: true },
+        },
+      },
     },
   },
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   paths: {
     "/api/health": {
@@ -1387,10 +1553,433 @@ const openApiSpec = {
         },
       },
     },
+    "/api/admin/categories": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get all categories (including inactive)",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Categories fetched successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: { type: "array", items: { $ref: "#/components/schemas/Category" } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Admin"],
+        summary: "Create a new category",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/CreateCategoryRequest" } } },
+        },
+        responses: {
+          201: {
+            description: "Category created",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string", example: "Category created successfully" },
+                    data: { $ref: "#/components/schemas/Category" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/admin/categories/{id}": {
+      patch: {
+        tags: ["Admin"],
+        summary: "Update a category",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateCategoryRequest" } } },
+        },
+        responses: {
+          200: { description: "Category updated successfully" },
+        },
+      },
+      delete: {
+        tags: ["Admin"],
+        summary: "Delete a category (Fails if products are attached)",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Category deleted successfully" },
+          400: { description: "Cannot delete category with attached products" },
+        },
+      },
+    },
+    "/api/admin/categories/{id}/toggle-status": {
+      patch: {
+        tags: ["Admin"],
+        summary: "Toggle category active/inactive status",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Category status toggled successfully" },
+        },
+      },
+    },
+    "/api/admin/regions": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get all regions with manager, category, and outlet counts",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "categoryId",
+            in: "query",
+            required: false,
+            schema: { type: "string", format: "uuid" },
+            description: "Filter regions by a specific Category ID",
+          },
+        ],
+        responses: {
+          200: {
+            description: "Regions fetched successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: { type: "array", items: { $ref: "#/components/schemas/Region" } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Admin"],
+        summary: "Create a new region, assign manager and category",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/CreateRegionRequest" } } },
+        },
+        responses: {
+          201: {
+            description: "Region created",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string", example: "Region created successfully" },
+                    data: { $ref: "#/components/schemas/Region" },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: "Bad Request" }
+        },
+      },
+    },
+    "/api/admin/regions/{id}": {
+      patch: {
+        tags: ["Admin"],
+        summary: "Update a region (Rename or change Manager)",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateRegionRequest" } } },
+        },
+        responses: {
+          200: { description: "Region updated successfully" },
+          400: { description: "Manager role validation failed" }
+        },
+      },
+      delete: {
+        tags: ["Admin"],
+        summary: "Delete a region (Fails if outlets are attached)",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Region deleted successfully" },
+          400: { description: "Cannot delete region with attached outlets" },
+        },
+      },
+    },
+    "/api/admin/regions/{id}/toggle-status": {
+      patch: {
+        tags: ["Admin"],
+        summary: "Toggle region active/inactive status",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Region status toggled successfully" },
+        },
+      },
+    },
+    "/api/admin/staff/managers": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get list of all Operational Managers and their assigned regions",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Managers fetched successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string", example: "Operational Managers fetched successfully" },
+                    data: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/OperationalManager" }
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/admin/outlets": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get all producers (outlets), optionally filter by region",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "regionId",
+            in: "query",
+            required: false,
+            schema: { type: "string", format: "uuid" },
+            description: "Filter producers by a specific Region ID",
+          },
+        ],
+        responses: {
+          200: {
+            description: "Producers fetched successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: { type: "array", items: { $ref: "#/components/schemas/ProducerAdminView" } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Admin"],
+        summary: "Create a new producer (outlet)",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/CreateProducerRequest" } } },
+        },
+        responses: {
+          201: {
+            description: "Producer created successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string", example: "Producer created successfully" },
+                    data: { $ref: "#/components/schemas/ProducerAdminView" },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: "Bad Request (e.g., duplicate key or invalid owner role)" }
+        },
+      },
+    },
+    "/api/admin/outlets/{id}": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get a producer by ID",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: {
+            description: "Producer details fetched successfully",
+            content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean", example: true }, data: { $ref: "#/components/schemas/ProducerAdminView" } } } } }
+          },
+          404: { description: "Producer not found" }
+        }
+      },
+      patch: {
+        tags: ["Admin"],
+        summary: "Update a producer",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateProducerRequest" } } },
+        },
+        responses: {
+          200: { description: "Producer updated successfully" },
+          400: { description: "Role validation failed or duplicate key" }
+        },
+      },
+    },
+    "/api/admin/outlets/{id}/toggle-status": {
+      patch: {
+        tags: ["Admin"],
+        summary: "Toggle producer active/inactive status",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Producer status toggled successfully" },
+        },
+      },
+    },
+    "/api/admin/artisans": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get all artisans, filterable by category",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "categoryId",
+            in: "query",
+            required: false,
+            schema: { type: "string", format: "uuid" },
+            description: "Filter artisans by Category ID"
+          },
+        ],
+        responses: {
+          200: {
+            description: "Artisans fetched successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: { type: "array", items: { $ref: "#/components/schemas/ProducerAdminView" } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Admin"],
+        summary: "Create a new artisan (outlet)",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/CreateProducerRequest" } } },
+        },
+        responses: {
+          201: { description: "Artisan created successfully" },
+          400: { description: "Bad Request (e.g., duplicate key or owner is not an ARTISAN)" }
+        },
+      },
+    },
+    "/api/admin/artisans/{id}": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get an artisan by ID",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: {
+            description: "Artisan details fetched successfully",
+            content: { "application/json": { schema: { type: "object", properties: { success: { type: "boolean", example: true }, data: { $ref: "#/components/schemas/ProducerAdminView" } } } } }
+          },
+          404: { description: "Artisan not found" }
+        }
+      },
+      patch: {
+        tags: ["Admin"],
+        summary: "Update an artisan",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateProducerRequest" } } },
+        },
+        responses: {
+          200: { description: "Artisan updated successfully" },
+        },
+      },
+    },
+    "/api/admin/artisans/{id}/toggle-status": {
+      patch: {
+        tags: ["Admin"],
+        summary: "Toggle artisan active/inactive status",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Artisan status toggled successfully" },
+        },
+      },
+    },
+    "/api/admin/orders": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get paginated list of all orders with deep filtering and search",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 10 } },
+          { name: "search", in: "query", schema: { type: "string" }, description: "Search by Order ID, User Name, or Product Name" },
+          { name: "status", in: "query", schema: { type: "string", enum: ["PLACED", "CONFIRMED", "PACKED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"] } },
+          { name: "categoryId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "regionId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "dateRange", in: "query", schema: { type: "string", enum: ["this_week", "this_month", "custom"] } },
+          { name: "startDate", in: "query", schema: { type: "string", format: "date-time" }, description: "Required if dateRange=custom" },
+          { name: "endDate", in: "query", schema: { type: "string", format: "date-time" }, description: "Required if dateRange=custom" }
+        ],
+        responses: {
+          200: { description: "Orders fetched successfully" }
+        }
+      }
+    },
+    "/api/admin/orders/{id}": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get full A-to-Z details of a specific order",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Order details fetched successfully" },
+          404: { description: "Order not found" }
+        }
+      }
+    },
 
-
-    /////////////////////////////////////////////////////////////////
-
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   },
 };
