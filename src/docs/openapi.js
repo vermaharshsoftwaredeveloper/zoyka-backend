@@ -1,0 +1,1398 @@
+const openApiSpec = {
+  openapi: "3.0.3",
+  info: {
+    title: "Zoyka Backend API",
+    version: "1.0.0",
+    description:
+      "API documentation for Zoyka ecommerce backend with email OTP auth, outlets, products, and reviews.",
+  },
+  servers: [
+    {
+      url: "http://localhost:3000",
+      description: "Local development",
+    },
+  ],
+  tags: [
+    { name: "Health" },
+    { name: "Auth" },
+    { name: "Admin" },
+    { name: "Outlets" },
+    { name: "Products" },
+    { name: "Reviews" },
+    { name: "Addresses" },
+    { name: "Wishlist" },
+    { name: "Cart" },
+    { name: "Orders" },
+    { name: "Support" },
+    { name: "Profile" },
+  ],
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+      },
+    },
+    schemas: {
+      ErrorResponse: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: false },
+          message: { type: "string", example: "Invalid request body" },
+          errors: {
+            type: "array",
+            items: { type: "string" },
+            example: [],
+          },
+        },
+      },
+      AuthTokens: {
+        type: "object",
+        properties: {
+          accessToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+          refreshToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+        },
+      },
+      SignupRequest: {
+        type: "object",
+        required: ["name", "email", "mobile", "password"],
+        properties: {
+          name: { type: "string", example: "Ravi Kumar" },
+          email: { type: "string", format: "email", example: "ravi@example.com" },
+          mobile: { type: "string", example: "9876543210" },
+          password: { type: "string", example: "Pass@1234" },
+        },
+      },
+      CreateStaffRequest: {
+        type: "object",
+        required: ["name", "email", "mobile", "password", "role"],
+        properties: {
+          name: { type: "string", example: "New Manager" },
+          email: { type: "string", format: "email", example: "manager@zoyka.com" },
+          mobile: { type: "string", example: "9876543210" },
+          password: { type: "string", example: "Manager@1234" },
+          role: { type: "string", enum: ["ADMIN", "MANAGER"], example: "MANAGER" },
+        },
+      },
+      VerifyOtpRequest: {
+        type: "object",
+        required: ["email", "otp"],
+        properties: {
+          email: { type: "string", format: "email", example: "ravi@example.com" },
+          otp: { type: "string", example: "123456" },
+        },
+      },
+      LoginRequest: {
+        type: "object",
+        required: ["email", "password"],
+        properties: {
+          email: { type: "string", format: "email", example: "ravi@example.com" },
+          password: { type: "string", example: "Pass@1234" },
+        },
+      },
+      ResendOtpRequest: {
+        type: "object",
+        required: ["email", "purpose"],
+        properties: {
+          email: { type: "string", format: "email", example: "ravi@example.com" },
+          purpose: { type: "string", enum: ["SIGNUP", "LOGIN"], example: "LOGIN" },
+        },
+      },
+      Outlet: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          key: { type: "string", example: "karigar" },
+          name: { type: "string", example: "Karigar" },
+          description: { type: "string", example: "Handmade artisan products" },
+        },
+      },
+      ProductImage: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          url: { type: "string", format: "uri", example: "https://cdn.zoyka.in/products/1.jpg" },
+          sortOrder: { type: "integer", example: 0 },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      ProductCard: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          title: { type: "string", example: "Organic Turmeric Powder" },
+          slug: { type: "string", example: "organic-turmeric-powder" },
+          description: { type: "string", nullable: true },
+          producerName: { type: "string", nullable: true, example: "Lakshmi Farmers Collective" },
+          producerStory: { type: "string", nullable: true },
+          district: { type: "string", example: "Warangal" },
+          price: { type: "number", example: 149 },
+          stock: { type: "integer", example: 45 },
+          outlet: {
+            type: "object",
+            properties: {
+              id: { type: "string", format: "uuid" },
+              key: { type: "string", example: "kisansetu" },
+              name: { type: "string", example: "Kisan Setu" },
+            },
+          },
+          images: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ProductImage" },
+          },
+          averageRating: { type: "number", example: 4.6 },
+          totalRatingsCount: { type: "integer", example: 12 },
+        },
+      },
+      ReviewImage: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          url: { type: "string", format: "uri", example: "https://cdn.zoyka.in/reviews/1.jpg" },
+        },
+      },
+      Review: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          rating: { type: "integer", minimum: 1, maximum: 5, example: 5 },
+          comment: { type: "string", nullable: true, example: "Very authentic and fresh." },
+          wouldRecommend: { type: "boolean", example: true },
+          createdAt: { type: "string", format: "date-time" },
+          user: {
+            type: "object",
+            properties: {
+              id: { type: "string", format: "uuid" },
+              name: { type: "string", example: "Ravi Kumar" },
+            },
+          },
+          images: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ReviewImage" },
+          },
+        },
+      },
+      CreateReviewRequest: {
+        type: "object",
+        required: ["rating"],
+        properties: {
+          rating: { type: "integer", minimum: 1, maximum: 5, example: 4 },
+          comment: { type: "string", example: "Great quality product." },
+          wouldRecommend: { type: "boolean", example: true },
+          images: {
+            type: "array",
+            items: { type: "string", format: "uri" },
+            example: ["https://cdn.zoyka.in/reviews/abc.jpg"],
+          },
+        },
+      },
+      ContactUsRequest: {
+        type: "object",
+        required: ["name", "email", "phone", "message"],
+        properties: {
+          name: { type: "string", example: "Ravi Kumar" },
+          email: { type: "string", format: "email", example: "ravi@example.com" },
+          phone: { type: "string", example: "9876543210" },
+          message: { type: "string", example: "Need help with product authenticity information." },
+        },
+      },
+      BulkOrderInquiryRequest: {
+        type: "object",
+        required: ["fullName", "companyName", "email", "phoneNumber", "quantityRequired", "city", "state", "pincode"],
+        properties: {
+          fullName: { type: "string", example: "Sita Reddy" },
+          companyName: { type: "string", example: "Nature Retail Pvt Ltd" },
+          email: { type: "string", format: "email", example: "sita@natureretail.com" },
+          phoneNumber: { type: "string", example: "9988776655" },
+          quantityRequired: { type: "integer", example: 500 },
+          city: { type: "string", example: "Hyderabad" },
+          state: { type: "string", example: "Telangana" },
+          pincode: { type: "string", example: "500001" },
+          additionalDetails: { type: "string", example: "Need monthly repeat supply for 6 months" },
+        },
+      },
+      PaymentDeliveryHelpRequest: {
+        type: "object",
+        required: ["referenceId", "additionalDetails"],
+        properties: {
+          referenceId: { type: "string", example: "ORD-123456 or TXN-889900" },
+          additionalDetails: { type: "string", example: "Payment debited but order not visible in app" },
+        },
+      },
+      Profile: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          name: { type: "string", example: "Ravi Kumar" },
+          email: { type: "string", format: "email", example: "ravi@example.com" },
+          mobile: { type: "string", example: "9876543210" },
+          avatar: { type: "string", format: "uri", nullable: true },
+          role: { type: "string", example: "USER" },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      UpdateProfileRequest: {
+        type: "object",
+        properties: {
+          name: { type: "string", example: "Ravi K" },
+          avatar: { type: "string", format: "uri", example: "https://cdn.zoyka.in/avatars/ravi.jpg" },
+        },
+      },
+      Address: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          type: { type: "string", enum: ["HOME", "WORK", "OTHER"] },
+          isDefault: { type: "boolean", example: true },
+          fullName: { type: "string", example: "Ravi Kumar" },
+          phoneNumber: { type: "string", example: "9876543210" },
+          line1: { type: "string", example: "H.No 2-12, Main Road" },
+          line2: { type: "string", nullable: true, example: "Near Hanuman Temple" },
+          landmark: { type: "string", nullable: true, example: "Bus stand" },
+          district: { type: "string", example: "Warangal" },
+          state: { type: "string", example: "Telangana" },
+          pincode: { type: "string", example: "506001" },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      UpsertAddressRequest: {
+        type: "object",
+        required: ["fullName", "phoneNumber", "line1", "district", "state", "pincode"],
+        properties: {
+          type: { type: "string", enum: ["HOME", "WORK", "OTHER"], example: "HOME" },
+          isDefault: { type: "boolean", example: true },
+          fullName: { type: "string", example: "Ravi Kumar" },
+          phoneNumber: { type: "string", example: "9876543210" },
+          line1: { type: "string", example: "H.No 2-12, Main Road" },
+          line2: { type: "string", example: "Near Hanuman Temple" },
+          landmark: { type: "string", example: "Bus stand" },
+          district: { type: "string", example: "Warangal" },
+          state: { type: "string", example: "Telangana" },
+          pincode: { type: "string", example: "506001" },
+        },
+      },
+      CartItem: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          quantity: { type: "integer", example: 2 },
+          product: { $ref: "#/components/schemas/ProductCard" },
+        },
+      },
+      Cart: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          userId: { type: "string", format: "uuid" },
+          items: {
+            type: "array",
+            items: { $ref: "#/components/schemas/CartItem" },
+          },
+          subtotal: { type: "number", example: 598 },
+        },
+      },
+      AddCartItemRequest: {
+        type: "object",
+        required: ["productId", "quantity"],
+        properties: {
+          productId: { type: "string", format: "uuid" },
+          quantity: { type: "integer", minimum: 1, example: 1 },
+        },
+      },
+      UpdateCartItemRequest: {
+        type: "object",
+        required: ["quantity"],
+        properties: {
+          quantity: { type: "integer", minimum: 1, example: 3 },
+        },
+      },
+      AddToWishlistRequest: {
+        type: "object",
+        required: ["productId"],
+        properties: {
+          productId: { type: "string", format: "uuid" },
+        },
+      },
+      Order: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          status: {
+            type: "string",
+            enum: ["PLACED", "CONFIRMED", "PACKED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"],
+          },
+          quantity: { type: "integer", example: 2 },
+          unitPrice: { type: "number", example: 149 },
+          totalAmount: { type: "number", example: 298 },
+          notes: { type: "string", nullable: true },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+          product: { $ref: "#/components/schemas/ProductCard" },
+          address: { $ref: "#/components/schemas/Address" },
+          tracking: {
+            type: "object",
+            properties: {
+              currentStatus: { type: "string", example: "PACKED" },
+              availableStatuses: {
+                type: "array",
+                items: { type: "string" },
+              },
+              lastUpdatedAt: { type: "string", format: "date-time" },
+            },
+          },
+        },
+      },
+      CheckoutRequest: {
+        type: "object",
+        required: ["addressId"],
+        properties: {
+          addressId: { type: "string", format: "uuid" },
+          notes: { type: "string", example: "Please deliver in the evening" },
+        },
+      },
+      DashboardOverviewCard: {
+        type: "object",
+        properties: {
+          count: { type: "integer", example: 145 },
+          amount: { type: "number", example: 45000.5 },
+          changeFromYesterdayPercent: { type: "number", example: 12.5 },
+        },
+      },
+      DashboardResponse: {
+        type: "object",
+        properties: {
+          section1_overviewCards: {
+            type: "object",
+            properties: {
+              todaysOrders: { $ref: "#/components/schemas/DashboardOverviewCard" },
+              pendingQc: { $ref: "#/components/schemas/DashboardOverviewCard" },
+              lowInventory: { $ref: "#/components/schemas/DashboardOverviewCard" },
+              todaysRevenue: { $ref: "#/components/schemas/DashboardOverviewCard" },
+              dispatchPending: { $ref: "#/components/schemas/DashboardOverviewCard" },
+            },
+          },
+          section2_categorySalesTrend: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                date: { type: "string", format: "date", example: "2023-10-01" },
+                categories: {
+                  type: "object",
+                  additionalProperties: { type: "number" },
+                  example: { "Kisan Setu": 15000, "Karigar": 8000 },
+                },
+              },
+            },
+          },
+          section3_regionPerformance: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                region: { type: "string", example: "Telangana" },
+                revenue: { type: "number", example: 45000 },
+                orderCount: { type: "integer", example: 120 },
+              },
+            },
+          },
+          section4_topProducts: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string", format: "uuid" },
+                title: { type: "string", example: "Organic Turmeric Powder" },
+                price: { type: "number", example: 149 },
+                stock: { type: "integer", example: 45 },
+                totalSold: { type: "integer", example: 350 },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+
+  paths: {
+    "/api/health": {
+      get: {
+        tags: ["Health"],
+        summary: "Health check",
+        responses: {
+          200: {
+            description: "Server status",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    status: { type: "string", example: "Zoyka backend is running" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/auth/create-staff": {
+      post: {
+        tags: ["Auth"],
+        summary: "Create a new Admin or Manager (Requires ADMIN role)",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateStaffRequest" },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: "Staff account created successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "MANAGER account created successfully." },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: "Bad request", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } },
+          401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } },
+          403: { description: "Forbidden - Requires ADMIN role", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } },
+        },
+      },
+    },
+    "/api/auth/signup": {
+      post: {
+        tags: ["Auth"],
+        summary: "Signup and send OTP to email",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/SignupRequest" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "OTP sent",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "OTP sent to your email for signup verification" },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: "Bad request", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } },
+        },
+      },
+    },
+    "/api/auth/signup/verify-otp": {
+      post: {
+        tags: ["Auth"],
+        summary: "Verify signup OTP and create active account session",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/VerifyOtpRequest" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "Signup verified",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      type: "object",
+                      properties: {
+                        message: { type: "string", example: "Signup verification successful" },
+                      },
+                    },
+                    { $ref: "#/components/schemas/AuthTokens" },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/auth/login": {
+      post: {
+        tags: ["Auth"],
+        summary: "Validate credentials and send login OTP",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/LoginRequest" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "OTP sent",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "OTP sent to your email for login verification" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/auth/login/verify-otp": {
+      post: {
+        tags: ["Auth"],
+        summary: "Verify login OTP and return tokens",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/VerifyOtpRequest" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "Login successful",
+            content: {
+              "application/json": {
+                schema: {
+                  allOf: [
+                    {
+                      type: "object",
+                      properties: {
+                        message: { type: "string", example: "Login successful" },
+                      },
+                    },
+                    { $ref: "#/components/schemas/AuthTokens" },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/auth/resend-otp": {
+      post: {
+        tags: ["Auth"],
+        summary: "Resend OTP for signup or login",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ResendOtpRequest" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "OTP resent",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "OTP resent for login verification" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/outlets": {
+      get: {
+        tags: ["Outlets"],
+        summary: "List active sub-outlets",
+        responses: {
+          200: {
+            description: "Outlets list",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Outlets fetched successfully" },
+                    data: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Outlet" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/products": {
+      get: {
+        tags: ["Products"],
+        summary: "List products with filters",
+        parameters: [
+          { name: "outletKey", in: "query", schema: { type: "string" }, example: "kisansetu" },
+          { name: "district", in: "query", schema: { type: "string" }, example: "Warangal" },
+          { name: "search", in: "query", schema: { type: "string" }, example: "turmeric" },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 12 } },
+        ],
+        responses: {
+          200: {
+            description: "Paginated products",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Products fetched successfully" },
+                    data: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/ProductCard" },
+                    },
+                    page: { type: "integer", example: 1 },
+                    limit: { type: "integer", example: 12 },
+                    total: { type: "integer", example: 48 },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/products/bestsellers": {
+      get: {
+        tags: ["Products"],
+        summary: "Get bestsellers for an outlet",
+        parameters: [
+          {
+            name: "outletKey",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+            example: "kisansetu",
+          },
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", default: 10 },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Bestsellers list",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Outlet bestsellers fetched successfully" },
+                    data: {
+                      type: "array",
+                      items: {
+                        allOf: [
+                          { $ref: "#/components/schemas/ProductCard" },
+                          {
+                            type: "object",
+                            properties: {
+                              totalSoldQuantity: { type: "integer", example: 120 },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/products/top-picks": {
+      get: {
+        tags: ["Products"],
+        summary: "Get personalized top picks for logged-in user",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", default: 10 },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Top picks list",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Top picks fetched successfully" },
+                    data: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/ProductCard" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/products/{productId}": {
+      get: {
+        tags: ["Products"],
+        summary: "Get product details by id",
+        parameters: [
+          {
+            name: "productId",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Product detail",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Product fetched successfully" },
+                    data: {
+                      allOf: [
+                        { $ref: "#/components/schemas/ProductCard" },
+                        {
+                          type: "object",
+                          properties: {
+                            reviews: {
+                              type: "array",
+                              items: { $ref: "#/components/schemas/Review" },
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/products/{productId}/reviews": {
+      get: {
+        tags: ["Reviews"],
+        summary: "List reviews for a product",
+        parameters: [
+          {
+            name: "productId",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Reviews list",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Reviews fetched successfully" },
+                    data: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Review" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Reviews"],
+        summary: "Create review for product",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "productId",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateReviewRequest" },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: "Review created",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Review created successfully" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string", format: "uuid" },
+                        rating: { type: "integer", example: 4 },
+                        comment: { type: "string", nullable: true },
+                        createdAt: { type: "string", format: "date-time" },
+                        images: {
+                          type: "array",
+                          items: { $ref: "#/components/schemas/ReviewImage" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: "Unauthorized",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/reviews/highlights": {
+      get: {
+        tags: ["Reviews"],
+        summary: "Get best customer reviews and global review stats",
+        parameters: [
+          {
+            name: "limit",
+            in: "query",
+            schema: { type: "integer", default: 6 },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Review highlights fetched",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Customer review highlights fetched successfully" },
+                    data: {
+                      type: "object",
+                      properties: {
+                        stats: {
+                          type: "object",
+                          properties: {
+                            totalReviewCount: { type: "integer", example: 2450 },
+                            averageRating: { type: "number", example: 4.4 },
+                            recommendPercentage: { type: "number", example: 91.3 },
+                          },
+                        },
+                        bestReviews: {
+                          type: "array",
+                          items: { $ref: "#/components/schemas/Review" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/addresses": {
+      get: {
+        tags: ["Addresses"],
+        summary: "List user addresses",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Addresses list",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Addresses fetched successfully" },
+                    data: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Address" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Addresses"],
+        summary: "Create new address",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpsertAddressRequest" },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: "Address created",
+          },
+        },
+      },
+    },
+    "/api/addresses/{addressId}": {
+      patch: {
+        tags: ["Addresses"],
+        summary: "Update address",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "addressId",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpsertAddressRequest" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "Address updated",
+          },
+        },
+      },
+      delete: {
+        tags: ["Addresses"],
+        summary: "Delete address",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "addressId",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Address deleted",
+          },
+        },
+      },
+    },
+    "/api/wishlist": {
+      get: {
+        tags: ["Wishlist"],
+        summary: "List wishlist items",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: "Wishlist fetched" },
+        },
+      },
+      post: {
+        tags: ["Wishlist"],
+        summary: "Add product to wishlist",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AddToWishlistRequest" },
+            },
+          },
+        },
+        responses: {
+          201: { description: "Product added to wishlist" },
+        },
+      },
+    },
+    "/api/wishlist/{productId}": {
+      delete: {
+        tags: ["Wishlist"],
+        summary: "Remove product from wishlist",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "productId",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        responses: {
+          200: { description: "Removed from wishlist" },
+        },
+      },
+    },
+    "/api/cart": {
+      get: {
+        tags: ["Cart"],
+        summary: "Get user cart",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Cart fetched",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Cart fetched successfully" },
+                    data: { $ref: "#/components/schemas/Cart" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/cart/items": {
+      post: {
+        tags: ["Cart"],
+        summary: "Add item to cart",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AddCartItemRequest" },
+            },
+          },
+        },
+        responses: {
+          201: { description: "Item added" },
+        },
+      },
+    },
+    "/api/cart/items/{itemId}": {
+      patch: {
+        tags: ["Cart"],
+        summary: "Update item quantity",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "itemId",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateCartItemRequest" },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Item updated" },
+        },
+      },
+      delete: {
+        tags: ["Cart"],
+        summary: "Remove cart item",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "itemId",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        responses: {
+          200: { description: "Item removed" },
+        },
+      },
+    },
+    "/api/cart/clear": {
+      delete: {
+        tags: ["Cart"],
+        summary: "Clear cart",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: "Cart cleared" },
+        },
+      },
+    },
+    "/api/orders": {
+      get: {
+        tags: ["Orders"],
+        summary: "List user orders",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Orders fetched",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Orders fetched successfully" },
+                    data: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Order" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/orders/checkout": {
+      post: {
+        tags: ["Orders"],
+        summary: "Checkout cart as independent product orders",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CheckoutRequest" },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: "Checkout completed",
+          },
+        },
+      },
+    },
+    "/api/orders/{orderId}": {
+      get: {
+        tags: ["Orders"],
+        summary: "Get order details and tracking status",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "orderId",
+            in: "path",
+            required: true,
+            schema: { type: "string", format: "uuid" },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Order fetched",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Order fetched successfully" },
+                    data: { $ref: "#/components/schemas/Order" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/contact-us": {
+      post: {
+        tags: ["Support"],
+        summary: "Submit contact us form",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/ContactUsRequest" },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: "Contact query submitted",
+          },
+        },
+      },
+    },
+    "/api/bulk-order-inquiries": {
+      post: {
+        tags: ["Support"],
+        summary: "Submit bulk order inquiry form",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/BulkOrderInquiryRequest" },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: "Bulk inquiry submitted",
+          },
+        },
+      },
+    },
+    "/api/payment-delivery-help": {
+      post: {
+        tags: ["Support"],
+        summary: "Submit payment and delivery help request",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/PaymentDeliveryHelpRequest" },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: "Help request submitted",
+          },
+        },
+      },
+    },
+    "/api/profile/me": {
+      get: {
+        tags: ["Profile"],
+        summary: "Get logged-in user profile",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Profile fetched",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Profile fetched successfully" },
+                    data: { $ref: "#/components/schemas/Profile" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      patch: {
+        tags: ["Profile"],
+        summary: "Update full name or profile picture",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateProfileRequest" },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "Profile updated",
+          },
+        },
+      },
+    },
+    "/api/admin/dashboard": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get admin dashboard analytics and aggregations",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "period",
+            in: "query",
+            schema: { type: "string", enum: ["HALF_YEARLY", "YEARLY"], default: "HALF_YEARLY" },
+            description: "Time period for the section 2 category sales trend graph",
+          },
+        ],
+        responses: {
+          200: {
+            description: "Dashboard metrics fetched successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string", example: "Admin dashboard metrics fetched successfully" },
+                    data: { $ref: "#/components/schemas/DashboardResponse" },
+                  },
+                },
+              },
+            },
+          },
+          400: { description: "Invalid query parameters", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } },
+          401: { description: "Unauthorized", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } },
+          403: { description: "Forbidden - Requires ADMIN or MANAGER role", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } } },
+        },
+      },
+    },
+
+
+    /////////////////////////////////////////////////////////////////
+
+
+  },
+};
+
+export default openApiSpec;
