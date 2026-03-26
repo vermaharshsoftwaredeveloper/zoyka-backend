@@ -11,6 +11,10 @@ const openApiSpec = {
       url: "http://localhost:3000",
       description: "Local development",
     },
+    {
+      url: "https://zoyka-backend.onrender.com",
+      description: "Production Server",
+    }
   ],
   tags: [
     { name: "Health" },
