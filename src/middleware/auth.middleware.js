@@ -24,6 +24,21 @@ export const requireAuth = (req, res, next) => {
   }
 };
 
+export const requireRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user?.id) {
+      return next(new ApiError(401, "Unauthorized"));
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return next(new ApiError(403, "Forbidden: insufficient permissions"));
+    }
+
+    next();
+  };
+};
+
+export const requireAdmin = requireRoles("ADMIN", "SUPER_ADMIN");
 export const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {

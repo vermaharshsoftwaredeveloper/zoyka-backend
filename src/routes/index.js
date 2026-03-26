@@ -13,6 +13,12 @@ import contactRouter from "../modules/contact/contact.routes.js";
 import bulkOrderInquiryRouter from "../modules/bulk-order-inquiry/bulk-order-inquiry.routes.js";
 import helpRequestRouter from "../modules/help-request/help-request.routes.js";
 import userProfileRouter from "../modules/user-profile/user-profile.routes.js";
+import adminProductRouter from "../modules/admin-product/admin-product.routes.js";
+import adminOutletRouter from "../modules/admin-outlet/admin-outlet.routes.js";
+import adminTestimonialRouter from "../modules/admin-testimonial/admin-testimonial.routes.js";
+import adminCouponRouter from "../modules/admin-coupon/admin-coupon.routes.js";
+import bannerRouter from "../modules/banner/banner.routes.js";
+import adminBannerRouter from "../modules/admin-banner/admin-banner.routes.js";
 import adminDashboardRoutes from '../modules/admin/dashboard.routes.js';
 import adminCategoryRoutes from '../modules/category/admin-category.routes.js';
 import adminRegionRoutes from '../modules/region/admin-region.routes.js';
@@ -20,6 +26,7 @@ import staffRoutes from '../modules/admin/staff.routes.js';
 import adminOutletRoutes from '../modules/outlet/admin-outlet.routes.js';
 import adminArtisanRoutes from '../modules/artisan/admin-artisan.routes.js';
 import adminOrderRoutes from '../modules/order/admin-order.routes.js';
+import operationsManagerRoutes from "../modules/operations-manager/operations-manager.routes.js";
 
 const router = Router();
 
@@ -40,6 +47,13 @@ router.use("/contact-us", contactRouter);
 router.use("/bulk-order-inquiries", bulkOrderInquiryRouter);
 router.use("/payment-delivery-help", helpRequestRouter);
 router.use("/profile", userProfileRouter);
+router.use("/banners", bannerRouter);
+
+router.use("/admin/products", adminProductRouter);
+router.use("/admin/outlets", adminOutletRouter);
+router.use("/admin/testimonials", adminTestimonialRouter);
+router.use("/admin/coupons", adminCouponRouter);
+router.use("/admin/banners", adminBannerRouter);
 router.use("/admin", adminDashboardRoutes);
 router.use("/admin/categories", adminCategoryRoutes);
 router.use("/admin/regions", adminRegionRoutes);
@@ -47,5 +61,6 @@ router.use("/admin/staff", staffRoutes);
 router.use("/admin/outlets", adminOutletRoutes);
 router.use("/admin/artisans", adminArtisanRoutes);
 router.use("/admin/orders", adminOrderRoutes);
+router.use("/ops", operationsManagerRoutes);
 
 export default router;

@@ -9,6 +9,7 @@ export const getAllOutletsService = async () => {
       key: true,
       name: true,
       description: true,
+      imageUrl: true,
     },
   });
 };

@@ -4,7 +4,7 @@ const openApiSpec = {
     title: "Zoyka Backend API",
     version: "1.0.0",
     description:
-      "API documentation for Zoyka ecommerce backend with email OTP auth, outlets, products, and reviews.",
+      "API documentation for Zoyka ecommerce backend with email OTP auth, customer flows, and admin management APIs.",
   },
   servers: [
     {
@@ -25,6 +25,13 @@ const openApiSpec = {
     { name: "Orders" },
     { name: "Support" },
     { name: "Profile" },
+    { name: "Banners" },
+    { name: "Admin Products" },
+    { name: "Admin Outlets" },
+    { name: "Admin Testimonials" },
+    { name: "Admin Coupons" },
+    { name: "Admin Banners" },
+    { name: "Operations Manager" },
   ],
   components: {
     securitySchemes: {
@@ -106,6 +113,7 @@ const openApiSpec = {
           key: { type: "string", example: "karigar" },
           name: { type: "string", example: "Karigar" },
           description: { type: "string", example: "Handmade artisan products" },
+          imageUrl: { type: "string", format: "uri", nullable: true, example: "https://cdn.zoyka.in/outlets/karigar.jpg" },
         },
       },
       ProductImage: {
@@ -353,6 +361,81 @@ const openApiSpec = {
           notes: { type: "string", example: "Please deliver in the evening" },
         },
       },
+      AdminCreateProductRequest: {
+        type: "object",
+        required: ["outletId", "categoryId", "title", "slug", "district", "price"],
+        properties: {
+          outletId: { type: "string", format: "uuid" },
+          categoryId: { type: "string", format: "uuid" },
+          title: { type: "string", example: "Organic Turmeric Powder" },
+          slug: { type: "string", example: "organic-turmeric-powder" },
+          description: { type: "string", nullable: true },
+          producerName: { type: "string", nullable: true, example: "Lakshmi Farmers Collective" },
+          producerStory: { type: "string", nullable: true },
+          district: { type: "string", example: "Warangal" },
+          price: { type: "number", example: 149 },
+          stock: { type: "integer", minimum: 0, example: 100 },
+          images: {
+            type: "array",
+            items: { type: "string", format: "uri" },
+            example: ["https://cdn.zoyka.in/products/turmeric-1.jpg"],
+          },
+          isActive: { type: "boolean", example: true },
+        },
+      },
+      AdminUpdateProductRequest: {
+        type: "object",
+        properties: {
+          outletId: { type: "string", format: "uuid" },
+          categoryId: { type: "string", format: "uuid" },
+          title: { type: "string" },
+          slug: { type: "string" },
+          description: { type: "string", nullable: true },
+          producerName: { type: "string", nullable: true },
+          producerStory: { type: "string", nullable: true },
+          district: { type: "string" },
+          price: { type: "number" },
+          stock: { type: "integer", minimum: 0 },
+          images: {
+            type: "array",
+            items: { type: "string", format: "uri" },
+          },
+          isActive: { type: "boolean" },
+        },
+      },
+      AdminCreateOutletRequest: {
+        type: "object",
+        required: ["key", "name"],
+        properties: {
+          key: { type: "string", example: "kisansetu" },
+          name: { type: "string", example: "Kisan Setu" },
+          description: { type: "string", nullable: true },
+          imageUrl: { type: "string", format: "uri", nullable: true },
+          isActive: { type: "boolean", example: true },
+        },
+      },
+      AdminUpdateOutletRequest: {
+        type: "object",
+        properties: {
+          key: { type: "string" },
+          name: { type: "string" },
+          description: { type: "string", nullable: true },
+          imageUrl: { type: "string", format: "uri", nullable: true },
+          isActive: { type: "boolean" },
+        },
+      },
+      Testimonial: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          customerName: { type: "string", example: "Ravi Kumar" },
+          customerImageUrl: { type: "string", format: "uri", nullable: true },
+          reviewText: { type: "string", example: "Authentic products and fast delivery." },
+          rating: { type: "integer", minimum: 1, maximum: 5, example: 5 },
+          sortOrder: { type: "integer", example: 0 },
+          isActive: { type: "boolean", example: true },
+        },
+      },
       DashboardOverviewCard: {
         type: "object",
         properties: {
@@ -430,6 +513,90 @@ const openApiSpec = {
           },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      AdminCreateTestimonialRequest: {
+        type: "object",
+        required: ["customerName", "reviewText", "rating"],
+        properties: {
+          customerName: { type: "string", example: "Ravi Kumar" },
+          customerImageUrl: { type: "string", format: "uri", nullable: true },
+          reviewText: { type: "string", example: "Authentic products and fast delivery." },
+          rating: { type: "integer", minimum: 1, maximum: 5, example: 5 },
+          sortOrder: { type: "integer", minimum: 0, example: 0 },
+          isActive: { type: "boolean", example: true },
+        },
+      },
+      AdminUpdateTestimonialRequest: {
+        type: "object",
+        properties: {
+          customerName: { type: "string" },
+          customerImageUrl: { type: "string", format: "uri", nullable: true },
+          reviewText: { type: "string" },
+          rating: { type: "integer", minimum: 1, maximum: 5 },
+          sortOrder: { type: "integer", minimum: 0 },
+          isActive: { type: "boolean" },
+        },
+      },
+      Coupon: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          code: { type: "string", example: "WELCOME10" },
+          description: { type: "string", nullable: true },
+          discountType: { type: "string", enum: ["PERCENTAGE", "FLAT"] },
+          discountValue: { type: "number", example: 10 },
+          minOrderAmount: { type: "number", nullable: true, example: 499 },
+          maxDiscount: { type: "number", nullable: true, example: 100 },
+          startsAt: { type: "string", format: "date-time", nullable: true },
+          expiresAt: { type: "string", format: "date-time", nullable: true },
+          usageLimit: { type: "integer", nullable: true, example: 5000 },
+          usedCount: { type: "integer", example: 120 },
+          isActive: { type: "boolean", example: true },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      AdminCreateCouponRequest: {
+        type: "object",
+        required: ["code", "discountType", "discountValue"],
+        properties: {
+          code: { type: "string", example: "WELCOME10" },
+          description: { type: "string", nullable: true },
+          discountType: { type: "string", enum: ["PERCENTAGE", "FLAT"] },
+          discountValue: { type: "number", example: 10 },
+          minOrderAmount: { type: "number", nullable: true, example: 499 },
+          maxDiscount: { type: "number", nullable: true, example: 100 },
+          startsAt: { type: "string", format: "date-time", nullable: true },
+          expiresAt: { type: "string", format: "date-time", nullable: true },
+          usageLimit: { type: "integer", nullable: true, example: 5000 },
+          isActive: { type: "boolean", example: true },
+        },
+      },
+      AdminUpdateCouponRequest: {
+        type: "object",
+        properties: {
+          code: { type: "string" },
+          description: { type: "string", nullable: true },
+          discountType: { type: "string", enum: ["PERCENTAGE", "FLAT"] },
+          discountValue: { type: "number" },
+          minOrderAmount: { type: "number", nullable: true },
+          maxDiscount: { type: "number", nullable: true },
+          startsAt: { type: "string", format: "date-time", nullable: true },
+          expiresAt: { type: "string", format: "date-time", nullable: true },
+          usageLimit: { type: "integer", nullable: true },
+          usedCount: { type: "integer", nullable: true },
+          isActive: { type: "boolean" },
+        },
+      },
+      Banner: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          imageUrl: { type: "string", format: "uri", example: "https://cdn.zoyka.in/banners/summer-sale.jpg" },
+          link: { type: "string", format: "uri", nullable: true, example: "https://zoyka.in/products/organic-turmeric-powder" },
+          sortOrder: { type: "integer", example: 0 },
+          isActive: { type: "boolean", example: true },
         },
       },
       CreateCategoryRequest: {
@@ -557,6 +724,25 @@ const openApiSpec = {
           },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      AdminCreateBannerRequest: {
+        type: "object",
+        required: ["imageUrl"],
+        properties: {
+          imageUrl: { type: "string", format: "uri" },
+          link: { type: "string", format: "uri", nullable: true },
+          sortOrder: { type: "integer", minimum: 0, example: 0 },
+          isActive: { type: "boolean", example: true },
+        },
+      },
+      AdminUpdateBannerRequest: {
+        type: "object",
+        properties: {
+          imageUrl: { type: "string", format: "uri" },
+          link: { type: "string", format: "uri", nullable: true },
+          sortOrder: { type: "integer", minimum: 0 },
+          isActive: { type: "boolean" },
         },
       },
       CreateProducerRequest: {
@@ -1477,6 +1663,425 @@ const openApiSpec = {
         },
       },
     },
+    "/api/banners": {
+      get: {
+        tags: ["Banners"],
+        summary: "List active banners for user app",
+        parameters: [
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        ],
+        responses: {
+          200: {
+            description: "Banners fetched",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Banners fetched successfully" },
+                    data: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          id: { type: "string", format: "uuid" },
+                          imageUrl: { type: "string", format: "uri" },
+                          link: { type: "string", format: "uri", nullable: true },
+                          sortOrder: { type: "integer" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/admin/products": {
+      get: {
+        tags: ["Admin Products"],
+        summary: "List products (read-only admin access)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "search", in: "query", schema: { type: "string" } },
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        ],
+        responses: {
+          200: {
+            description: "Admin products fetched",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Admin products fetched successfully" },
+                    data: { type: "array", items: { $ref: "#/components/schemas/ProductCard" } },
+                    page: { type: "integer" },
+                    limit: { type: "integer" },
+                    total: { type: "integer" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/admin/products/{productId}": {
+      get: {
+        tags: ["Admin Products"],
+        summary: "Get product by id (read-only admin access)",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Admin product fetched" },
+        },
+      },
+    },
+    "/api/admin/outlets": {
+      get: {
+        tags: ["Admin Outlets"],
+        summary: "List outlets for admin management",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "search", in: "query", schema: { type: "string" } },
+          { name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        ],
+        responses: {
+          200: {
+            description: "Admin outlets fetched",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Admin outlets fetched successfully" },
+                    data: { type: "array", items: { $ref: "#/components/schemas/Outlet" } },
+                    page: { type: "integer" },
+                    limit: { type: "integer" },
+                    total: { type: "integer" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Admin Outlets"],
+        summary: "Create outlet",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AdminCreateOutletRequest" },
+            },
+          },
+        },
+        responses: {
+          201: { description: "Outlet created" },
+        },
+      },
+    },
+    "/api/admin/outlets/{outletId}": {
+      get: {
+        tags: ["Admin Outlets"],
+        summary: "Get outlet by id for admin",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "outletId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Outlet fetched" },
+        },
+      },
+      patch: {
+        tags: ["Admin Outlets"],
+        summary: "Update outlet",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "outletId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AdminUpdateOutletRequest" },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Outlet updated" },
+        },
+      },
+      delete: {
+        tags: ["Admin Outlets"],
+        summary: "Soft delete outlet (set inactive)",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "outletId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Outlet deleted" },
+        },
+      },
+    },
+    "/api/admin/testimonials": {
+      get: {
+        tags: ["Admin Testimonials"],
+        summary: "List testimonials for admin management",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "search", in: "query", schema: { type: "string" } },
+          { name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        ],
+        responses: {
+          200: {
+            description: "Admin testimonials fetched",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Admin testimonials fetched successfully" },
+                    data: { type: "array", items: { $ref: "#/components/schemas/Testimonial" } },
+                    page: { type: "integer" },
+                    limit: { type: "integer" },
+                    total: { type: "integer" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Admin Testimonials"],
+        summary: "Create testimonial",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AdminCreateTestimonialRequest" },
+            },
+          },
+        },
+        responses: {
+          201: { description: "Testimonial created" },
+        },
+      },
+    },
+    "/api/admin/testimonials/{testimonialId}": {
+      get: {
+        tags: ["Admin Testimonials"],
+        summary: "Get testimonial by id",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "testimonialId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Testimonial fetched" },
+        },
+      },
+      patch: {
+        tags: ["Admin Testimonials"],
+        summary: "Update testimonial",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "testimonialId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AdminUpdateTestimonialRequest" },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Testimonial updated" },
+        },
+      },
+      delete: {
+        tags: ["Admin Testimonials"],
+        summary: "Delete testimonial",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "testimonialId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Testimonial deleted" },
+        },
+      },
+    },
+    "/api/admin/coupons": {
+      get: {
+        tags: ["Admin Coupons"],
+        summary: "List coupons for admin management",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "search", in: "query", schema: { type: "string" } },
+          { name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        ],
+        responses: {
+          200: {
+            description: "Admin coupons fetched",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Admin coupons fetched successfully" },
+                    data: { type: "array", items: { $ref: "#/components/schemas/Coupon" } },
+                    page: { type: "integer" },
+                    limit: { type: "integer" },
+                    total: { type: "integer" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Admin Coupons"],
+        summary: "Create coupon",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AdminCreateCouponRequest" },
+            },
+          },
+        },
+        responses: {
+          201: { description: "Coupon created" },
+        },
+      },
+    },
+    "/api/admin/coupons/{couponId}": {
+      get: {
+        tags: ["Admin Coupons"],
+        summary: "Get coupon by id",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "couponId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Coupon fetched" },
+        },
+      },
+      patch: {
+        tags: ["Admin Coupons"],
+        summary: "Update coupon",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "couponId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AdminUpdateCouponRequest" },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Coupon updated" },
+        },
+      },
+      delete: {
+        tags: ["Admin Coupons"],
+        summary: "Delete coupon",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "couponId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Coupon deleted" },
+        },
+      },
+    },
+    "/api/admin/banners": {
+      get: {
+        tags: ["Admin Banners"],
+        summary: "List banners for admin management",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        ],
+        responses: {
+          200: {
+            description: "Admin banners fetched",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Admin banners fetched successfully" },
+                    data: { type: "array", items: { $ref: "#/components/schemas/Banner" } },
+                    page: { type: "integer" },
+                    limit: { type: "integer" },
+                    total: { type: "integer" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Admin Banners"],
+        summary: "Create banner",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AdminCreateBannerRequest" },
+            },
+          },
+        },
+        responses: {
+          201: { description: "Banner created" },
+        },
+      },
+    },
+    "/api/admin/banners/{bannerId}": {
+      get: {
+        tags: ["Admin Banners"],
+        summary: "Get banner by id",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "bannerId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Banner fetched" },
+        },
+      },
+      patch: {
+        tags: ["Admin Banners"],
+        summary: "Update banner",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "bannerId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AdminUpdateBannerRequest" },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Banner updated" },
+        },
+      },
+      delete: {
+        tags: ["Admin Banners"],
+        summary: "Delete banner",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "bannerId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Banner deleted" },
+        },
+      },
+    },
     "/api/profile/me": {
       get: {
         tags: ["Profile"],
@@ -1975,6 +2580,261 @@ const openApiSpec = {
         responses: {
           200: { description: "Order details fetched successfully" },
           404: { description: "Order not found" }
+        }
+      }
+    },
+
+    "/api/ops/dashboard": {
+      get: {
+        tags: ["Operations Manager"],
+        summary: "Get outlet operations dashboard stats",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "lowStockThreshold", in: "query", schema: { type: "integer", default: 10 } }
+        ],
+        responses: {
+          200: { description: "Operations dashboard fetched successfully" }
+        }
+      }
+    },
+    "/api/ops/orders/new": {
+      get: {
+        tags: ["Operations Manager"],
+        summary: "List new orders waiting for acceptance",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } }
+        ],
+        responses: {
+          200: { description: "New orders fetched successfully" }
+        }
+      }
+    },
+    "/api/ops/orders/{orderId}/decision": {
+      patch: {
+        tags: ["Operations Manager"],
+        summary: "Accept or reject a newly placed order",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "orderId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["decision"],
+                properties: {
+                  decision: { type: "string", enum: ["ACCEPT", "REJECT"] },
+                  reason: { type: "string" }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: "Order decision applied successfully" }
+        }
+      }
+    },
+    "/api/ops/qc/pending": {
+      get: {
+        tags: ["Operations Manager"],
+        summary: "List orders pending QC",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } }
+        ],
+        responses: {
+          200: { description: "QC pending orders fetched successfully" }
+        }
+      }
+    },
+    "/api/ops/orders/{orderId}/qc": {
+      patch: {
+        tags: ["Operations Manager"],
+        summary: "Pass or fail QC for an order",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "orderId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["decision"],
+                properties: {
+                  decision: { type: "string", enum: ["PASS", "FAIL"] },
+                  notes: { type: "string" }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: "QC decision applied successfully" }
+        }
+      }
+    },
+    "/api/ops/dispatch": {
+      get: {
+        tags: ["Operations Manager"],
+        summary: "Get dispatch queues for packing and shipping",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } }
+        ],
+        responses: {
+          200: { description: "Dispatch queues fetched successfully" }
+        }
+      }
+    },
+    "/api/ops/returns": {
+      get: {
+        tags: ["Operations Manager"],
+        summary: "List return-pending orders with return reason and latest feedback",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } }
+        ],
+        responses: {
+          200: { description: "Returns pending orders fetched successfully" }
+        }
+      }
+    },
+    "/api/ops/inventory/low-stock": {
+      get: {
+        tags: ["Operations Manager"],
+        summary: "List low stock products for managed outlets",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "threshold", in: "query", schema: { type: "integer", default: 10 } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } }
+        ],
+        responses: {
+          200: { description: "Low stock products fetched successfully" }
+        }
+      }
+    },
+    "/api/ops/inventory/products/{productId}/stock": {
+      patch: {
+        tags: ["Operations Manager"],
+        summary: "Update stock for a managed outlet product",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["quantity"],
+                properties: {
+                  mode: { type: "string", enum: ["SET", "INCREMENT"], default: "INCREMENT" },
+                  quantity: { type: "integer", minimum: 1 }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: "Product stock updated successfully" }
+        }
+      }
+    },
+    "/api/ops/products": {
+      get: {
+        tags: ["Operations Manager"],
+        summary: "List products in managed outlets",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } }
+        ],
+        responses: {
+          200: { description: "Outlet products fetched successfully" }
+        }
+      },
+      post: {
+        tags: ["Operations Manager"],
+        summary: "Create a product for a managed outlet",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AdminCreateProductRequest" }
+            }
+          }
+        },
+        responses: {
+          201: { description: "Outlet product created successfully" }
+        }
+      }
+    },
+    "/api/ops/products/{productId}": {
+      get: {
+        tags: ["Operations Manager"],
+        summary: "Get a managed outlet product by id",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
+        ],
+        responses: {
+          200: { description: "Outlet product fetched successfully" }
+        }
+      },
+      patch: {
+        tags: ["Operations Manager"],
+        summary: "Update a product in managed outlets",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AdminUpdateProductRequest" }
+            }
+          }
+        },
+        responses: {
+          200: { description: "Outlet product updated successfully" }
+        }
+      },
+      delete: {
+        tags: ["Operations Manager"],
+        summary: "Soft delete a product in managed outlets",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
+        ],
+        responses: {
+          200: { description: "Outlet product deleted successfully" }
         }
       }
     },

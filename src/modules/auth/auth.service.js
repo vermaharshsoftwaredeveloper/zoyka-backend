@@ -7,11 +7,10 @@ import { generateOtp, getOtpExpiry } from "./utils/otp.utils.js";
 
 const ACCESS_TOKEN_EXPIRY = "1h";
 const REFRESH_TOKEN_EXPIRY = "30d";
+const DEV_STATIC_OTP = process.env.DEV_STATIC_OTP || "123456";
+const isProduction = process.env.NODE_ENV === "production";
 
-// --- DEV BYPASS HELPER (for testing purpose only) ---
-const getDevBypassOtp = () => {
-  return process.env.BYPASS_EMAIL_VERIFICATION === 'true' ? '123456' : generateOtp();
-};
+const getOtpForEnvironment = () => (isProduction ? generateOtp() : DEV_STATIC_OTP);
 
 const buildAuthPayload = (user) => ({
   id: user.id,
@@ -32,8 +31,8 @@ const issueAuthTokens = async (user) => {
 };
 
 const sendOtpEmail = async ({ email, otp, purpose }) => {
-  if (process.env.BYPASS_EMAIL_VERIFICATION === 'true') {
-    console.log(`[DEV BYPASS] OTP for ${email} is ${otp}`);
+  if (!isProduction) {
+    console.log(`[DEV OTP] OTP for ${email} (${purpose}) is ${otp}`);
     return;
   }
 
@@ -67,7 +66,7 @@ export const signupService = async ({ name, email, mobile, password }) => {
     throw new ApiError(409, "User already registered. Please login.");
   }
 
-  const otp = getDevBypassOtp();
+  const otp = getOtpForEnvironment();
   const otpExpiry = getOtpExpiry();
   const hashedPassword = await hashPassword(password);
 
@@ -188,7 +187,7 @@ export const requestLoginOtpService = async ({ email, password }) => {
     throw new ApiError(400, "Invalid email or password");
   }
 
-  const otp = getDevBypassOtp();
+  const otp = getOtpForEnvironment();
   const otpExpiry = getOtpExpiry();
 
   await prisma.user.update({
@@ -264,7 +263,7 @@ export const resendOtpService = async ({ email, purpose }) => {
     throw new ApiError(400, "Email is not verified yet.");
   }
 
-  const otp = getDevBypassOtp();
+  const otp = getOtpForEnvironment();
   const otpExpiry = getOtpExpiry();
 
   await prisma.user.update({
