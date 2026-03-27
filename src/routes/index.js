@@ -27,6 +27,9 @@ import adminOutletRoutes from '../modules/outlet/admin-outlet.routes.js';
 import adminArtisanRoutes from '../modules/artisan/admin-artisan.routes.js';
 import adminOrderRoutes from '../modules/order/admin-order.routes.js';
 import operationsManagerRoutes from "../modules/operations-manager/operations-manager.routes.js";
+import adminFinanceRoutes from "../modules/finance/admin-finance.routes.js";
+import adminCustomerRoutes from "../modules/customer/admin-customer.routes.js";
+import adminAnalyticsRoutes from "../modules/analytics/admin-analytics.routes.js";
 
 const router = Router();
 
@@ -49,11 +52,14 @@ router.use("/payment-delivery-help", helpRequestRouter);
 router.use("/profile", userProfileRouter);
 router.use("/banners", bannerRouter);
 
+
+// Admin Routes
 router.use("/admin/products", adminProductRouter);
 router.use("/admin/outlets", adminOutletRouter);
 router.use("/admin/testimonials", adminTestimonialRouter);
 router.use("/admin/coupons", adminCouponRouter);
 router.use("/admin/banners", adminBannerRouter);
+router.use("/ops", operationsManagerRoutes);
 router.use("/admin", adminDashboardRoutes);
 router.use("/admin/categories", adminCategoryRoutes);
 router.use("/admin/regions", adminRegionRoutes);
@@ -61,6 +67,8 @@ router.use("/admin/staff", staffRoutes);
 router.use("/admin/outlets", adminOutletRoutes);
 router.use("/admin/artisans", adminArtisanRoutes);
 router.use("/admin/orders", adminOrderRoutes);
-router.use("/ops", operationsManagerRoutes);
+router.use("/admin/finance", adminFinanceRoutes);
+router.use("/admin/customers", adminCustomerRoutes);
+router.use("/admin/analytics", adminAnalyticsRoutes);
 
 export default router;

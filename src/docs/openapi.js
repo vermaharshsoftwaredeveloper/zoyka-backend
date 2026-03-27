@@ -19,7 +19,6 @@ const openApiSpec = {
   tags: [
     { name: "Health" },
     { name: "Auth" },
-    { name: "Admin" },
     { name: "Outlets" },
     { name: "Products" },
     { name: "Reviews" },
@@ -30,6 +29,8 @@ const openApiSpec = {
     { name: "Support" },
     { name: "Profile" },
     { name: "Banners" },
+    { name: "Admin" },
+    { name: "Admin Finance" },
     { name: "Admin Products" },
     { name: "Admin Outlets" },
     { name: "Admin Testimonials" },
@@ -772,6 +773,7 @@ const openApiSpec = {
       },
     },
   },
+
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2839,6 +2841,148 @@ const openApiSpec = {
         ],
         responses: {
           200: { description: "Outlet product deleted successfully" }
+        }
+      }
+    },
+    "/api/admin/finance/dashboard": {
+      get: {
+        tags: ["Admin Finance"],
+        summary: "Get total revenue metrics and a filtered list of vendor payouts",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "vertical",
+            in: "query",
+            required: false,
+            schema: { type: "string", enum: ["FOOD", "ARTISAN", "FARM"] },
+            description: "Filter the payouts list by specific vendor vertical"
+          },
+          {
+            name: "page",
+            in: "query",
+            required: false,
+            schema: { type: "integer", default: 1 }
+          },
+          {
+            name: "limit",
+            in: "query",
+            required: false,
+            schema: { type: "integer", default: 10 }
+          }
+        ],
+        responses: {
+          200: {
+            description: "Finance dashboard data fetched successfully",
+            content: {
+              "application/json": {
+                example: {
+                  success: true,
+                  data: {
+                    revenueStats: {
+                      totalRevenue: 150000,
+                      foodRevenue: 75000,
+                      artisanRevenue: 45000,
+                      farmRevenue: 30000
+                    },
+                    payouts: {
+                      data: [
+                        {
+                          payoutId: "uuid-string",
+                          vendorName: "Rahul's Organic Farm",
+                          ordersCount: 42,
+                          grossAmount: 12000,
+                          commission: 1200,
+                          amount: 10800,
+                          status: "PENDING",
+                          date: "2026-03-27T10:00:00.000Z"
+                        }
+                      ],
+                      meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          401: { description: "Unauthorized - Invalid or missing token" },
+          403: { description: "Forbidden - Requires ADMIN or MANAGER role" }
+        }
+      }
+    },
+    "/api/admin/customers": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get customer dashboard stats and paginated list with dynamic Tiers",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 10 } },
+          { name: "search", in: "query", schema: { type: "string" }, description: "Search by Name, Email, or Mobile" }
+        ],
+        responses: { 200: { description: "Customers fetched successfully" } }
+      }
+    },
+    "/api/admin/customers/new": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get the 10 newest registered customers",
+        security: [{ bearerAuth: [] }],
+        responses: { 200: { description: "New customers fetched successfully" } }
+      }
+    },
+    "/api/admin/customers/{id}": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get full A-to-Z profile of a specific customer including their orders",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 10 } },
+          { name: "startDate", in: "query", schema: { type: "string", format: "date-time" } },
+          { name: "endDate", in: "query", schema: { type: "string", format: "date-time" } }
+        ],
+        responses: { 200: { description: "Customer profile fetched successfully" } }
+      }
+    },
+    "/api/admin/customers/{id}/verify": {
+      patch: {
+        tags: ["Admin"],
+        summary: "Manually mark a customer's email as verified",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: { 200: { description: "Customer verified successfully" } }
+      }
+    },
+    "/api/admin/analytics": {
+      get: {
+        tags: ["Admin"],
+        summary: "Get 5-section analytics dashboard data with category and region filtering",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "categoryId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "regionId", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "startDate", in: "query", schema: { type: "string", format: "date-time" } },
+          { name: "endDate", in: "query", schema: { type: "string", format: "date-time" } }
+        ],
+        responses: {
+          200: {
+            description: "Analytics fetched successfully",
+            content: {
+              "application/json": {
+                example: {
+                  success: true,
+                  data: {
+                    cards: { totalOrders: 150, totalRevenue: 45000, conversionRate: 12.5, repeatRate: 35.2 },
+                    revenueDistribution: [{ id: "FOOD", label: "Food Revenue", value: 15000 }],
+                    inventoryTurnover: { totalUnitsSold: 300, totalCurrentStock: 1000, turnoverRate: 0.3 },
+                    topOutlets: [{ name: "Organic Farms", revenue: 8000 }],
+                    growthTrend: [{ month: "2026-01", FOOD: 5000, ARTISAN: 2000, FARM: 3000, total: 10000 }]
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

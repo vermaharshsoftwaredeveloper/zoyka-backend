@@ -13,6 +13,8 @@ enum Role {
   MANAGER
   PRODUCER
   ARTISAN
+  FARMER
+  KITCHEN
 }
 
 enum OtpPurpose {
@@ -398,10 +400,15 @@ model ProductionBatch {
 }
 
 model Payout {
-  id        String   @id @default(uuid())
-  outletId  String
-  outlet    Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
-  amount    Float
+  id       String @id @default(uuid())
+  outletId String
+  outlet   Outlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
+
+  ordersCount Int   @default(0)
+  grossAmount Float @default(0)
+  commission  Float @default(0)
+  amount      Float @default(0)
+
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
