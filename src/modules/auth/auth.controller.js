@@ -5,7 +5,7 @@ import {
   loginSchema,
   resendOtpSchema,
   signupSchema,
-  verifyLoginSchema,
+  // verifyLoginSchema,
   verifySignupSchema,
   createStaffSchema
 } from "./auth.validation.js";
@@ -20,6 +20,12 @@ const parseBody = (schema, body) => {
 
   return parsed.data;
 };
+
+export const login = asyncHandler(async (req, res) => {
+  const payload = parseBody(loginSchema, req.body);
+  const response = await authService.loginService(payload);
+  res.status(200).json(response);
+});
 
 export const signup = asyncHandler(async (req, res) => {
   const payload = parseBody(signupSchema, req.body);
@@ -37,21 +43,21 @@ export const verifySignupOtp = asyncHandler(async (req, res) => {
   res.status(200).json(response);
 });
 
-export const requestLoginOtp = asyncHandler(async (req, res) => {
-  const payload = parseBody(loginSchema, req.body);
+// export const requestLoginOtp = asyncHandler(async (req, res) => {
+//   const payload = parseBody(loginSchema, req.body);
 
-  const response = await authService.requestLoginOtpService(payload);
+//   const response = await authService.requestLoginOtpService(payload);
 
-  res.status(200).json(response);
-});
+//   res.status(200).json(response);
+// });
 
-export const verifyLoginOtp = asyncHandler(async (req, res) => {
-  const payload = parseBody(verifyLoginSchema, req.body);
+// export const verifyLoginOtp = asyncHandler(async (req, res) => {
+//   const payload = parseBody(verifyLoginSchema, req.body);
 
-  const response = await authService.verifyLoginOtpService(payload);
+//   const response = await authService.verifyLoginOtpService(payload);
 
-  res.status(200).json(response);
-});
+//   res.status(200).json(response);
+// });
 
 export const resendOtp = asyncHandler(async (req, res) => {
   const payload = parseBody(resendOtpSchema, req.body);

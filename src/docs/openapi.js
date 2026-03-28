@@ -899,7 +899,7 @@ const openApiSpec = {
     "/api/auth/login": {
       post: {
         tags: ["Auth"],
-        summary: "Validate credentials and send login OTP",
+        summary: "Log in directly with email and password to receive access tokens",
         requestBody: {
           required: true,
           content: {
@@ -910,55 +910,66 @@ const openApiSpec = {
         },
         responses: {
           200: {
-            description: "OTP sent",
+            description: "Login successful",
             content: {
               "application/json": {
                 schema: {
                   type: "object",
                   properties: {
-                    message: { type: "string", example: "OTP sent to your email for login verification" },
+                    message: { type: "string", example: "Login successful" },
+                    accessToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+                    refreshToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
                   },
                 },
               },
             },
           },
+          400: {
+            description: "Invalid email or password"
+          },
+          403: {
+            description: "Email not verified. Complete signup verification first."
+          },
+          404: {
+            description: "User not found"
+          }
         },
       },
     },
-    "/api/auth/login/verify-otp": {
-      post: {
-        tags: ["Auth"],
-        summary: "Verify login OTP and return tokens",
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/VerifyOtpRequest" },
-            },
-          },
-        },
-        responses: {
-          200: {
-            description: "Login successful",
-            content: {
-              "application/json": {
-                schema: {
-                  allOf: [
-                    {
-                      type: "object",
-                      properties: {
-                        message: { type: "string", example: "Login successful" },
-                      },
-                    },
-                    { $ref: "#/components/schemas/AuthTokens" },
-                  ],
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    // "/api/auth/login/verify-otp": {
+    //   post: {
+    //     tags: ["Auth"],
+    //     summary: "Verify login OTP and return tokens",
+    //     requestBody: {
+    //       required: true,
+    //       content: {
+    //         "application/json": {
+    //           schema: { $ref: "#/components/schemas/VerifyOtpRequest" },
+    //         },
+    //       },
+    //     },
+    //     responses: {
+    //       200: {
+    //         description: "Login successful",
+    //         content: {
+    //           "application/json": {
+    //             schema: {
+    //               allOf: [
+    //                 {
+    //                   type: "object",
+    //                   properties: {
+    //                     message: { type: "string", example: "Login successful" },
+    //                   },
+    //                 },
+    //                 { $ref: "#/components/schemas/AuthTokens" },
+    //               ],
+    //             },
+    //           },
+    //         },
+    //       },
+    //     },
+    //   },
+    // },
     "/api/auth/resend-otp": {
       post: {
         tags: ["Auth"],

@@ -19,10 +19,10 @@ export const loginSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
-export const verifyLoginSchema = z.object({
-  email: z.string().trim().toLowerCase().email(),
-  otp: z.string().trim().length(6),
-});
+// export const verifyLoginSchema = z.object({
+//   email: z.string().trim().toLowerCase().email(),
+//   otp: z.string().trim().length(6),
+// });
 
 export const resendOtpSchema = z.object({
   email: z.string().trim().toLowerCase().email(),

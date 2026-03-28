@@ -163,235 +163,6 @@ export const verifySignupOtpService = async ({ email, otp }) => {
   };
 };
 
-export const requestLoginOtpService = async ({ email, password }) => {
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  if (!user.isEmailVerified) {
-    throw new ApiError(403, "Email not verified. Complete signup verification first.");
-  }
-
-  const isPasswordValid = await comparePassword(password, user.password);
-
-  if (!isPasswordValid) {
-    throw new ApiError(400, "Invalid email or password");
-  }
-
-  const otp = generateOtp();
-  const otpExpiry = getOtpExpiry();
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      otp,
-      otpExpiry,
-      otpPurpose: "LOGIN",
-    },
-  });
-
-  await sendOtpEmail({ email: user.email, otp, purpose: "LOGIN" });
-
-  return { message: "OTP sent to your email for login verification" };
-};
-
-export const verifyLoginOtpService = async ({ email, otp }) => {
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  if (!user.isEmailVerified) {
-    throw new ApiError(403, "Email not verified");
-  }
-
-  if (user.otpPurpose !== "LOGIN") {
-    throw new ApiError(400, "Invalid OTP request type for login");
-  }
-
-  if (!user.otp || user.otp !== otp) {
-    throw new ApiError(400, "Invalid OTP");
-  }
-
-  if (!user.otpExpiry || new Date() > user.otpExpiry) {
-    throw new ApiError(400, "OTP expired. Please request a new OTP.");
-  }
-
-  const loggedInUser = await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      otp: null,
-      otpExpiry: null,
-      otpPurpose: null,
-    },
-  });
-
-  const tokens = await issueAuthTokens(loggedInUser);
-
-  return {
-    message: "Login successful",
-    ...tokens,
-  };
-};
-
-export const resendOtpService = async ({ email, purpose }) => {
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  if (purpose === "SIGNUP" && user.isEmailVerified) {
-    throw new ApiError(400, "Account already verified. Please login.");
-  }
-
-  if (purpose === "LOGIN" && !user.isEmailVerified) {
-    throw new ApiError(400, "Email is not verified yet.");
-  }
-
-  const otp = generateOtp();
-  const otpExpiry = getOtpExpiry();
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      otp,
-      otpExpiry,
-      otpPurpose: purpose,
-    },
-  });
-
-  await sendOtpEmail({ email, otp, purpose });
-
-  return {
-    message: `OTP resent for ${purpose.toLowerCase()} verification`,
-  };
-};
-
-// export const signupService = async ({ name, email, mobile, password }) => {
-//   const matchedUsers = await getMatchingUsers({ email, mobile });
-
-//   if (matchedUsers.length > 1) {
-//     throw new ApiError(400, "Email or mobile is already linked to another account");
-//   }
-
-//   const matchedUser = matchedUsers[0];
-
-//   if (matchedUser?.isEmailVerified) {
-//     throw new ApiError(409, "User already registered. Please login.");
-//   }
-
-//   const otp = getOtpForEnvironment();
-//   const otpExpiry = getOtpExpiry();
-//   const hashedPassword = await hashPassword(password);
-
-//   if (matchedUser) {
-//     await prisma.user.update({
-//       where: { id: matchedUser.id },
-//       data: {
-//         name,
-//         email,
-//         mobile,
-//         password: hashedPassword,
-//         otp,
-//         otpExpiry,
-//         otpPurpose: "SIGNUP",
-//         isEmailVerified: false,
-//       },
-//     });
-//   } else {
-//     await prisma.user.create({
-//       data: {
-//         name,
-//         email,
-//         mobile,
-//         password: hashedPassword,
-//         otp,
-//         otpExpiry,
-//         otpPurpose: "SIGNUP",
-//       },
-//     });
-//   }
-
-//   await sendOtpEmail({ email, otp, purpose: "SIGNUP" });
-
-//   return { message: "OTP sent to your email for signup verification" };
-// };
-
-// export const createStaffService = async ({ name, email, mobile, password, role }) => {
-//   const matchedUsers = await getMatchingUsers({ email, mobile });
-//   if (matchedUsers.length > 0) {
-//     throw new ApiError(400, "Email or mobile is already linked to another account");
-//   }
-
-//   const hashedPassword = await hashPassword(password);
-
-//   await prisma.user.create({
-//     data: {
-//       name,
-//       email,
-//       mobile,
-//       password: hashedPassword,
-//       role,
-//       isEmailVerified: true,
-//     },
-//   });
-
-//   return { message: `${role} account created successfully.` };
-// };
-
-// export const verifySignupOtpService = async ({ email, otp }) => {
-//   const user = await prisma.user.findUnique({
-//     where: { email },
-//   });
-
-//   if (!user) {
-//     throw new ApiError(404, "User not found. Please signup first.");
-//   }
-
-//   if (user.isEmailVerified) {
-//     throw new ApiError(400, "Account already verified. Please login.");
-//   }
-
-//   if (user.otpPurpose !== "SIGNUP") {
-//     throw new ApiError(400, "Invalid OTP request type for signup verification");
-//   }
-
-//   if (!user.otp || user.otp !== otp) {
-//     throw new ApiError(400, "Invalid OTP");
-//   }
-
-//   if (!user.otpExpiry || new Date() > user.otpExpiry) {
-//     throw new ApiError(400, "OTP expired. Please request a new OTP.");
-//   }
-
-//   const verifiedUser = await prisma.user.update({
-//     where: { id: user.id },
-//     data: {
-//       isEmailVerified: true,
-//       otp: null,
-//       otpExpiry: null,
-//       otpPurpose: null,
-//     },
-//   });
-
-//   const tokens = await issueAuthTokens(verifiedUser);
-
-//   return {
-//     message: "Signup verification successful",
-//     ...tokens,
-//   };
-// };
-
 // export const requestLoginOtpService = async ({ email, password }) => {
 //   const user = await prisma.user.findUnique({
 //     where: { email },
@@ -411,7 +182,7 @@ export const resendOtpService = async ({ email, purpose }) => {
 //     throw new ApiError(400, "Invalid email or password");
 //   }
 
-//   const otp = getOtpForEnvironment();
+//   const otp = generateOtp();
 //   const otpExpiry = getOtpExpiry();
 
 //   await prisma.user.update({
@@ -470,38 +241,65 @@ export const resendOtpService = async ({ email, purpose }) => {
 //   };
 // };
 
-// export const resendOtpService = async ({ email, purpose }) => {
-//   const user = await prisma.user.findUnique({
-//     where: { email },
-//   });
+export const resendOtpService = async ({ email, purpose }) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
 
-//   if (!user) {
-//     throw new ApiError(404, "User not found");
-//   }
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
 
-//   if (purpose === "SIGNUP" && user.isEmailVerified) {
-//     throw new ApiError(400, "Account already verified. Please login.");
-//   }
+  if (purpose === "SIGNUP" && user.isEmailVerified) {
+    throw new ApiError(400, "Account already verified. Please login.");
+  }
 
-//   if (purpose === "LOGIN" && !user.isEmailVerified) {
-//     throw new ApiError(400, "Email is not verified yet.");
-//   }
+  if (purpose === "LOGIN" && !user.isEmailVerified) {
+    throw new ApiError(400, "Email is not verified yet.");
+  }
 
-//   const otp = getOtpForEnvironment();
-//   const otpExpiry = getOtpExpiry();
+  const otp = generateOtp();
+  const otpExpiry = getOtpExpiry();
 
-//   await prisma.user.update({
-//     where: { id: user.id },
-//     data: {
-//       otp,
-//       otpExpiry,
-//       otpPurpose: purpose,
-//     },
-//   });
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      otp,
+      otpExpiry,
+      otpPurpose: purpose,
+    },
+  });
 
-//   await sendOtpEmail({ email, otp, purpose });
+  await sendOtpEmail({ email, otp, purpose });
 
-//   return {
-//     message: `OTP resent for ${purpose.toLowerCase()} verification`,
-//   };
-// };
+  return {
+    message: `OTP resent for ${purpose.toLowerCase()} verification`,
+  };
+};
+
+export const loginService = async ({ email, password }) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (!user.isEmailVerified) {
+    throw new ApiError(403, "Email not verified. Complete signup verification first.");
+  }
+
+  const isPasswordValid = await comparePassword(password, user.password);
+
+  if (!isPasswordValid) {
+    throw new ApiError(400, "Invalid email or password");
+  }
+
+  const tokens = await issueAuthTokens(user);
+
+  return {
+    message: "Login successful",
+    ...tokens,
+  };
+};
