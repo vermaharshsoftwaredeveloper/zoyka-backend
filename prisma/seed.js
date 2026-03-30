@@ -36,6 +36,13 @@ const main = async () => {
         create: { email: "kitchen@zoyka.com", mobile: "9100000001", name: "Chef Sharma", role: "KITCHEN", password: hashedPassword, isEmailVerified: true },
     });
 
+    // Added Producer User Here
+    const producer = await prisma.user.upsert({
+        where: { email: "producer@zoyka.com" },
+        update: {},
+        create: { email: "producer@zoyka.com", mobile: "9000000888", name: "Sample Producer", role: "PRODUCER", password: hashedPassword, isEmailVerified: true },
+    });
+
     // ==========================================
     // 2. CATEGORIES & REGIONS
     // ==========================================

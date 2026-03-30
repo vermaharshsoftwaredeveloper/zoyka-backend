@@ -62,7 +62,7 @@ export const getDashboardAggregations = async (period) => {
         select: {
             createdAt: true,
             totalAmount: true,
-            product: { select: { outlet: { select: { name: true } } } },
+            product: { select: { category: { select: { name: true } } } },
             address: { select: { state: true } }
         }
     });
@@ -72,7 +72,7 @@ export const getDashboardAggregations = async (period) => {
 
     historicalOrders.forEach(order => {
         const dateStr = order.createdAt.toISOString().split('T')[0];
-        const category = order.product?.outlet?.name || 'Uncategorized';
+        const category = order.product?.category?.name || 'Uncategorized';
 
         if (!categoryTrendData[dateStr]) categoryTrendData[dateStr] = {};
         if (!categoryTrendData[dateStr][category]) categoryTrendData[dateStr][category] = 0;

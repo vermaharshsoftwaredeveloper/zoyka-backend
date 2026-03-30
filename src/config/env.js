@@ -4,6 +4,11 @@ export const NODE_ENV = process.env.NODE_ENV || "development";
 
 export const PORT = process.env.PORT || 3000;
 
+const DEFAULT_API_BASE_URL =
+	NODE_ENV === "production" ? "https://zoyka-backend.onrender.com" : `http://localhost:${PORT}`;
+
+export const API_BASE_URL = process.env.API_BASE_URL || DEFAULT_API_BASE_URL;
+
 export const DATABASE_URL = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/zoykah";
 
 export const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";

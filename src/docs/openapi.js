@@ -1,3 +1,5 @@
+import { API_BASE_URL, NODE_ENV } from "../config/env.js";
+
 const openApiSpec = {
   openapi: "3.0.3",
   info: {
@@ -8,8 +10,8 @@ const openApiSpec = {
   },
   servers: [
     {
-      url: "http://localhost:3000",
-      description: "Local development",
+      url: API_BASE_URL,
+      description: NODE_ENV === "production" ? "Production" : "Local development",
     },
     {
       url: "https://zoyka-backend.onrender.com",
@@ -19,6 +21,8 @@ const openApiSpec = {
   tags: [
     { name: "Health" },
     { name: "Auth" },
+    { name: "Admin" },
+    { name: "Categories" },
     { name: "Outlets" },
     { name: "Products" },
     { name: "Reviews" },
@@ -115,10 +119,10 @@ const openApiSpec = {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          key: { type: "string", example: "karigar" },
-          name: { type: "string", example: "Karigar" },
-          description: { type: "string", example: "Handmade artisan products" },
-          imageUrl: { type: "string", format: "uri", nullable: true, example: "https://cdn.zoyka.in/outlets/karigar.jpg" },
+          key: { type: "string", example: "warangal-organics-store" },
+          name: { type: "string", example: "Warangal Organics Store" },
+          description: { type: "string", example: "Retail outlet for local produce" },
+          imageUrl: { type: "string", format: "uri", nullable: true, example: "https://cdn.zoyka.in/outlets/warangal-organics-store.jpg" },
         },
       },
       ProductImage: {
@@ -142,11 +146,11 @@ const openApiSpec = {
           district: { type: "string", example: "Warangal" },
           price: { type: "number", example: 149 },
           stock: { type: "integer", example: 45 },
-          outlet: {
+          category: {
             type: "object",
             properties: {
               id: { type: "string", format: "uuid" },
-              key: { type: "string", example: "kisansetu" },
+              slug: { type: "string", example: "kisansetu" },
               name: { type: "string", example: "Kisan Setu" },
             },
           },
@@ -412,8 +416,8 @@ const openApiSpec = {
         type: "object",
         required: ["key", "name"],
         properties: {
-          key: { type: "string", example: "kisansetu" },
-          name: { type: "string", example: "Kisan Setu" },
+          key: { type: "string", example: "warangal-organics-store" },
+          name: { type: "string", example: "Warangal Organics Store" },
           description: { type: "string", nullable: true },
           imageUrl: { type: "string", format: "uri", nullable: true },
           isActive: { type: "boolean", example: true },
@@ -699,9 +703,9 @@ const openApiSpec = {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          key: { type: "string", example: "kisan-setu" },
-          name: { type: "string", example: "Kisan Setu" },
-          description: { type: "string", nullable: true, example: "Organic farming collective" },
+          key: { type: "string", example: "warangal-organics-store" },
+          name: { type: "string", example: "Warangal Organics Store" },
+          description: { type: "string", nullable: true, example: "Retail outlet for local produce" },
           isActive: { type: "boolean", example: true },
           regionId: { type: "string", format: "uuid", nullable: true },
           ownerId: { type: "string", format: "uuid", nullable: true },
@@ -1003,7 +1007,7 @@ const openApiSpec = {
     "/api/outlets": {
       get: {
         tags: ["Outlets"],
-        summary: "List active sub-outlets",
+        summary: "List active outlets",
         responses: {
           200: {
             description: "Outlets list",
@@ -1025,12 +1029,37 @@ const openApiSpec = {
         },
       },
     },
+    "/api/categories": {
+      get: {
+        tags: ["Categories"],
+        summary: "List active categories",
+        responses: {
+          200: {
+            description: "Categories list",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Categories fetched successfully" },
+                    data: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/Category" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/api/products": {
       get: {
         tags: ["Products"],
         summary: "List products with filters",
         parameters: [
-          { name: "outletKey", in: "query", schema: { type: "string" }, example: "kisansetu" },
+          { name: "categorySlug", in: "query", schema: { type: "string" }, example: "kisansetu" },
           { name: "district", in: "query", schema: { type: "string" }, example: "Warangal" },
           { name: "search", in: "query", schema: { type: "string" }, example: "turmeric" },
           { name: "page", in: "query", schema: { type: "integer", default: 1 } },
@@ -1063,10 +1092,10 @@ const openApiSpec = {
     "/api/products/bestsellers": {
       get: {
         tags: ["Products"],
-        summary: "Get bestsellers for an outlet",
+        summary: "Get bestsellers for a category",
         parameters: [
           {
-            name: "outletKey",
+            name: "categorySlug",
             in: "query",
             required: true,
             schema: { type: "string" },
@@ -1086,7 +1115,7 @@ const openApiSpec = {
                 schema: {
                   type: "object",
                   properties: {
-                    message: { type: "string", example: "Outlet bestsellers fetched successfully" },
+                    message: { type: "string", example: "Category bestsellers fetched successfully" },
                     data: {
                       type: "array",
                       items: {

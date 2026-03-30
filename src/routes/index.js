@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import authRouter from "../modules/auth/auth.routes.js";
 import outletRouter from "../modules/outlet/outlet.routes.js";
+import categoryRouter from "../modules/category/category.routes.js";
 import productRouter from "../modules/product/product.routes.js";
 import reviewRouter from "../modules/review/review.routes.js";
 import reviewPublicRouter from "../modules/review/review-public.routes.js";
@@ -39,6 +40,7 @@ router.get("/health", (req, res) => {
 
 router.use("/auth", authRouter);
 router.use("/outlets", outletRouter);
+router.use("/categories", categoryRouter);
 router.use("/products", productRouter);
 router.use("/products/:productId/reviews", reviewRouter);
 router.use("/reviews", reviewPublicRouter);

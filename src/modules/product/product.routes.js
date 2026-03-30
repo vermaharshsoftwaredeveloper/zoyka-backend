@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.middleware.js";
 import {
-	getOutletBestsellers,
+	getCategoryBestsellers,
 	getProductById,
 	getTopPicksForUser,
 	listProducts,
@@ -10,7 +10,7 @@ import {
 const router = Router();
 
 router.get("/", listProducts);
-router.get("/bestsellers", getOutletBestsellers);
+router.get("/bestsellers", getCategoryBestsellers);
 router.get("/top-picks", requireAuth, getTopPicksForUser);
 router.get("/:productId", getProductById);
 

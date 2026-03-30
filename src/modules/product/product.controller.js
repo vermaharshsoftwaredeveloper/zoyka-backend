@@ -6,7 +6,7 @@ import {
   topPicksQuerySchema,
 } from "./product.validation.js";
 import {
-  getOutletBestsellersService,
+  getCategoryBestsellersService,
   getProductByIdService,
   getTopPicksForUserService,
   listProductsService,
@@ -46,12 +46,12 @@ export const getProductById = asyncHandler(async (req, res) => {
   });
 });
 
-export const getOutletBestsellers = asyncHandler(async (req, res) => {
+export const getCategoryBestsellers = asyncHandler(async (req, res) => {
   const query = parseQuery(bestsellerQuerySchema, req.query);
-  const data = await getOutletBestsellersService(query);
+  const data = await getCategoryBestsellersService(query);
 
   res.status(200).json({
-    message: "Outlet bestsellers fetched successfully",
+    message: "Category bestsellers fetched successfully",
     data,
   });
 });

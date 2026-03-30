@@ -36,14 +36,14 @@ const toProductCard = (product) => {
     district: product.district,
     price: product.price,
     stock: product.stock,
-    outlet: product.outlet,
+    category: product.category,
     images: product.images,
     ...ratingSummary,
   };
 };
 
 const getProductCardInclude = () => ({
-  outlet: { select: { id: true, key: true, name: true } },
+  category: { select: { id: true, slug: true, name: true } },
   images: { orderBy: { sortOrder: "asc" } },
 });
 
@@ -65,13 +65,13 @@ const getRankedProductsByIds = async (productIds) => {
   return productIds.map((id) => productMap.get(id)).filter(Boolean);
 };
 
-export const listProductsService = async ({ outletKey, district, search, page, limit }) => {
+export const listProductsService = async ({ categorySlug, district, search, page, limit }) => {
   const where = {
     isActive: true,
   };
 
-  if (outletKey) {
-    where.outlet = { key: outletKey };
+  if (categorySlug) {
+    where.category = { slug: categorySlug, isActive: true };
   }
 
   if (district) {
@@ -93,7 +93,7 @@ export const listProductsService = async ({ outletKey, district, search, page, l
       take: limit,
       orderBy: { createdAt: "desc" },
       include: {
-        outlet: { select: { id: true, key: true, name: true } },
+        category: { select: { id: true, slug: true, name: true } },
         images: { orderBy: { sortOrder: "asc" } },
         reviews: { select: { rating: true } },
       },
@@ -113,7 +113,7 @@ export const getProductByIdService = async (productId) => {
   const product = await prisma.product.findUnique({
     where: { id: productId },
     include: {
-      outlet: { select: { id: true, key: true, name: true } },
+      category: { select: { id: true, slug: true, name: true } },
       images: { orderBy: { sortOrder: "asc" } },
       reviews: {
         select: {
@@ -153,39 +153,39 @@ export const getProductByIdService = async (productId) => {
     district: product.district,
     price: product.price,
     stock: product.stock,
-    outlet: product.outlet,
+    category: product.category,
     images: product.images,
     reviews: product.reviews,
     ...ratingSummary,
   };
 };
 
-export const getOutletBestsellersService = async ({ outletKey, limit }) => {
-  const outlet = await prisma.outlet.findFirst({
+export const getCategoryBestsellersService = async ({ categorySlug, limit }) => {
+  const category = await prisma.category.findFirst({
     where: {
-      key: outletKey,
+      slug: categorySlug,
       isActive: true,
     },
     select: { id: true },
   });
 
-  if (!outlet) {
-    throw new ApiError(404, "Outlet not found");
+  if (!category) {
+    throw new ApiError(404, "Category not found");
   }
 
-  const outletProducts = await prisma.product.findMany({
+  const categoryProducts = await prisma.product.findMany({
     where: {
-      outletId: outlet.id,
+      categoryId: category.id,
       isActive: true,
     },
     select: { id: true },
   });
 
-  if (!outletProducts.length) {
+  if (!categoryProducts.length) {
     return [];
   }
 
-  const productIds = outletProducts.map((product) => product.id);
+  const productIds = categoryProducts.map((product) => product.id);
 
   const groupedSales = await prisma.order.groupBy({
     by: ["productId"],
@@ -206,7 +206,7 @@ export const getOutletBestsellersService = async ({ outletKey, limit }) => {
   if (rankedProducts.length < limit) {
     const fallbackProducts = await prisma.product.findMany({
       where: {
-        outletId: outlet.id,
+        categoryId: category.id,
         isActive: true,
         id: {
           notIn: rankedIds,

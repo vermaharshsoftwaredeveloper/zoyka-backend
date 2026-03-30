@@ -120,34 +120,34 @@ async function main() {
     const regionColumns = await getTableColumns("Region");
 
     const [admin, manager, producer, customer] = await Promise.all([
-        upsertUser({
-            email: "admin@zoyka.com",
-            mobile: "9000000001",
-            name: "Zoyka Admin",
-            role: "ADMIN",
-            password: "Admin@123",
-        }),
-        upsertUser({
-            email: "ops.manager@zoyka.com",
-            mobile: "9000000002",
-            name: "Outlet Ops Manager",
-            role: "MANAGER",
-            password: "Manager@123",
-        }),
+        // upsertUser({
+        //     email: "admin@zoyka.com",
+        //     mobile: "9000000001",
+        //     name: "Zoyka Admin",
+        //     role: "ADMIN",
+        //     password: "Admin@123",
+        // }),
+        // upsertUser({
+        //     email: "ops.manager@zoyka.com",
+        //     mobile: "9000000002",
+        //     name: "Outlet Ops Manager",
+        //     role: "MANAGER",
+        //     password: "Manager@123",
+        // }),
         upsertUser({
             email: "producer@zoyka.com",
-            mobile: "9000000003",
+            mobile: "9000000888",
             name: "Sample Producer",
             role: "PRODUCER",
             password: "Producer@123",
         }),
-        upsertUser({
-            email: "customer@zoyka.com",
-            mobile: "9000000004",
-            name: "Test Customer",
-            role: "USER",
-            password: "Customer@123",
-        }),
+        // upsertUser({
+        //     email: "customer@zoyka.com",
+        //     mobile: "9000000004",
+        //     name: "Test Customer",
+        //     role: "USER",
+        //     password: "Customer@123",
+        // }),
     ]);
 
     const category = await prisma.category.upsert({
