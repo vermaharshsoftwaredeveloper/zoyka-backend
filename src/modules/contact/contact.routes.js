@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createContactQuery } from "./contact.controller.js";
-import { requireAuth } from "../../middlewares/auth.js";
+import { requireAuth } from "../../middleware/auth.middleware.js";
 
 const router = Router();
 
