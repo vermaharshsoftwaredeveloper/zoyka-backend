@@ -159,6 +159,7 @@ export const verifySignupOtpService = async ({ email, otp }) => {
 
   return {
     message: "Signup verification successful",
+    role: verifiedUser.role,
     ...tokens,
   };
 };
@@ -300,6 +301,7 @@ export const loginService = async ({ email, password }) => {
 
   return {
     message: "Login successful",
+    role: user.role,
     ...tokens,
   };
 };

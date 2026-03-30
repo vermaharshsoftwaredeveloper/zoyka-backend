@@ -1,377 +1,207 @@
 import bcrypt from "bcryptjs";
 import prisma from "../src/config/prisma.js";
 
-const IMG_BASE = "https://images.unsplash.com";
-
 const hashPassword = (plain) => bcrypt.hash(plain, 10);
 
-const getTableColumns = async (tableName) => {
-    const rows = await prisma.$queryRaw`
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = ${tableName}
-    `;
+const main = async () => {
+    console.log("🌱 Starting Master Seed for ALL Models...");
 
-    return new Set(rows.map((row) => row.column_name));
-};
+    // ==========================================
+    // 1. USERS (Users Model)
+    // ==========================================
+    console.log("⏳ Seeding Users...");
+    const hashedPassword = await hashPassword("Password@123");
 
-const upsertUser = async ({ email, mobile, name, role, password }) => {
-    const hashed = await hashPassword(password);
-
-    return prisma.user.upsert({
-        where: { email },
-        update: {
-            name,
-            role,
-            mobile,
-            password: hashed,
-            isEmailVerified: true,
-        },
-        create: {
-            email,
-            mobile,
-            name,
-            role,
-            password: hashed,
-            isEmailVerified: true,
-        },
-    });
-};
-
-const upsertProductWithImage = async ({ outletId, categoryId, title, slug, district, price, stock, imageUrl, producerName, producerStory }) => {
-    return prisma.product.upsert({
-        where: {
-            outletId_slug: {
-                outletId,
-                slug,
-            },
-        },
-        update: {
-            categoryId,
-            title,
-            district,
-            price,
-            stock,
-            producerName,
-            producerStory,
-            isActive: true,
-            images: {
-                deleteMany: {},
-                create: [{ url: imageUrl, sortOrder: 0 }],
-            },
-        },
-        create: {
-            outletId,
-            categoryId,
-            title,
-            slug,
-            district,
-            price,
-            stock,
-            producerName,
-            producerStory,
-            isActive: true,
-            images: {
-                create: [{ url: imageUrl, sortOrder: 0 }],
-            },
-        },
-    });
-};
-
-const ensureOrder = async ({ marker, userId, addressId, productId, quantity, unitPrice, status, notes }) => {
-    const existing = await prisma.order.findFirst({
-        where: {
-            userId,
-            productId,
-            notes: { contains: marker },
-        },
+    const admin = await prisma.user.upsert({
+        where: { email: "admin@zoyka.com" },
+        update: {},
+        create: { email: "admin@zoyka.com", mobile: "9000000001", name: "Super Admin", role: "SUPER_ADMIN", password: hashedPassword, isEmailVerified: true },
     });
 
-    if (existing) {
-        return prisma.order.update({
-            where: { id: existing.id },
-            data: {
-                addressId,
-                quantity,
-                unitPrice,
-                totalAmount: quantity * unitPrice,
-                status,
-                notes: `${marker} ${notes}`,
-            },
-        });
-    }
-
-    return prisma.order.create({
-        data: {
-            userId,
-            addressId,
-            productId,
-            quantity,
-            unitPrice,
-            totalAmount: quantity * unitPrice,
-            status,
-            notes: `${marker} ${notes}`,
-        },
+    const manager = await prisma.user.upsert({
+        where: { email: "manager@zoyka.com" },
+        update: {},
+        create: { email: "manager@zoyka.com", mobile: "9000000002", name: "Ops Manager", role: "MANAGER", password: hashedPassword, isEmailVerified: true },
     });
-};
 
-async function main() {
-    const outletColumns = await getTableColumns("Outlet");
-    const regionColumns = await getTableColumns("Region");
+    const customer = await prisma.user.upsert({
+        where: { email: "customer@zoyka.com" },
+        update: {},
+        create: { email: "customer@zoyka.com", mobile: "9000000003", name: "Rahul Customer", role: "USER", password: hashedPassword, isEmailVerified: true },
+    });
 
-    const [admin, manager, producer, customer] = await Promise.all([
-        upsertUser({
-            email: "admin@zoyka.com",
-            mobile: "9000000001",
-            name: "Zoyka Admin",
-            role: "ADMIN",
-            password: "Admin@123",
-        }),
-        upsertUser({
-            email: "ops.manager@zoyka.com",
-            mobile: "9000000002",
-            name: "Outlet Ops Manager",
-            role: "MANAGER",
-            password: "Manager@123",
-        }),
-        upsertUser({
-            email: "producer@zoyka.com",
-            mobile: "9000000003",
-            name: "Sample Producer",
-            role: "PRODUCER",
-            password: "Producer@123",
-        }),
-        upsertUser({
-            email: "customer@zoyka.com",
-            mobile: "9000000004",
-            name: "Test Customer",
-            role: "USER",
-            password: "Customer@123",
-        }),
-    ]);
+    const kitchenOwner = await prisma.user.upsert({
+        where: { email: "kitchen@zoyka.com" },
+        update: {},
+        create: { email: "kitchen@zoyka.com", mobile: "9100000001", name: "Chef Sharma", role: "KITCHEN", password: hashedPassword, isEmailVerified: true },
+    });
 
+    // ==========================================
+    // 2. CATEGORIES & REGIONS
+    // ==========================================
+    console.log("⏳ Seeding Categories & Regions...");
     const category = await prisma.category.upsert({
-        where: { slug: "seed-spices" },
-        update: {
-            name: "Seed Spices",
-            description: "Seed category for endpoint testing",
-            isActive: true,
-        },
-        create: {
-            name: "Seed Spices",
-            slug: "seed-spices",
-            description: "Seed category for endpoint testing",
-            isActive: true,
-        },
+        where: { slug: "cloud-kitchen" },
+        update: {},
+        create: { name: "Cloud Kitchen", slug: "cloud-kitchen", description: "Freshly prepared food", isActive: true },
     });
 
     const region = await prisma.region.upsert({
-        where: { name: "Seed Region" },
-        update: {
-            managerId: manager.id,
-            isActive: true,
-            ...(regionColumns.has("categoryId") ? { categoryId: category.id } : {}),
-        },
-        create: {
-            name: "Seed Region",
-            managerId: manager.id,
-            isActive: true,
-            ...(regionColumns.has("categoryId") ? { categoryId: category.id } : {}),
-        },
+        where: { name: "North India" },
+        update: {},
+        create: { name: "North India", isActive: true, managerId: manager.id, categoryId: category.id },
     });
 
+    // ==========================================
+    // 3. OUTLETS
+    // ==========================================
+    console.log("⏳ Seeding Outlets...");
     const outlet = await prisma.outlet.upsert({
-        where: { key: "seed-outlet-ops" },
-        update: {
-            name: "Seed Ops Outlet",
-            description: "Demo outlet for operations manager endpoint testing",
-            isActive: true,
-            ...(outletColumns.has("address") ? { address: "Market Road, Seed Region" } : {}),
-            ...(outletColumns.has("monthlyCapacity") ? { monthlyCapacity: 2500 } : {}),
-            ...(outletColumns.has("qualityScore") ? { qualityScore: 87 } : {}),
-            ...(outletColumns.has("ownerId") ? { ownerId: producer.id } : {}),
-            ...(outletColumns.has("regionId") ? { regionId: region.id } : {}),
-            ...(outletColumns.has("categoryId") ? { categoryId: category.id } : {}),
-        },
+        where: { key: "OUT-KITCHEN-01" },
+        update: {},
         create: {
-            key: "seed-outlet-ops",
-            name: "Seed Ops Outlet",
-            description: "Demo outlet for operations manager endpoint testing",
-            isActive: true,
-            ...(outletColumns.has("address") ? { address: "Market Road, Seed Region" } : {}),
-            ...(outletColumns.has("monthlyCapacity") ? { monthlyCapacity: 2500 } : {}),
-            ...(outletColumns.has("qualityScore") ? { qualityScore: 87 } : {}),
-            ...(outletColumns.has("ownerId") ? { ownerId: producer.id } : {}),
-            ...(outletColumns.has("regionId") ? { regionId: region.id } : {}),
-            ...(outletColumns.has("categoryId") ? { categoryId: category.id } : {}),
+            key: "OUT-KITCHEN-01", name: "Sharma Ji Ki Rasoi", description: "Authentic Meals",
+            imageUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1",
+            address: "123 Food Street, Delhi", monthlyCapacity: 500, qualityScore: 4.8,
+            ownerId: kitchenOwner.id, categoryId: category.id, regionId: region.id
         },
     });
 
-    const products = await Promise.all([
-        upsertProductWithImage({
-            outletId: outlet.id,
-            categoryId: category.id,
-            title: "Seed Turmeric Powder",
-            slug: "seed-turmeric-powder",
-            district: "Warangal",
-            price: 149,
-            stock: 3,
-            producerName: "Sample Producer",
-            producerStory: "Traditional spice producer",
-            imageUrl: `${IMG_BASE}/photo-1615486511484-92e172cc4fe0?auto=format&fit=crop&w=900&q=80`,
-        }),
-        upsertProductWithImage({
-            outletId: outlet.id,
-            categoryId: category.id,
-            title: "Seed Red Chilli Powder",
-            slug: "seed-red-chilli-powder",
-            district: "Karimnagar",
-            price: 199,
-            stock: 42,
-            producerName: "Sample Producer",
-            producerStory: "Traditional spice producer",
-            imageUrl: `${IMG_BASE}/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=900&q=80`,
-        }),
-        upsertProductWithImage({
-            outletId: outlet.id,
-            categoryId: category.id,
-            title: "Seed Coriander Powder",
-            slug: "seed-coriander-powder",
-            district: "Nizamabad",
-            price: 129,
-            stock: 18,
-            producerName: "Sample Producer",
-            producerStory: "Traditional spice producer",
-            imageUrl: `${IMG_BASE}/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=900&q=80`,
-        }),
-        upsertProductWithImage({
-            outletId: outlet.id,
-            categoryId: category.id,
-            title: "Seed Garam Masala",
-            slug: "seed-garam-masala",
-            district: "Hyderabad",
-            price: 219,
-            stock: 8,
-            producerName: "Sample Producer",
-            producerStory: "Traditional spice producer",
-            imageUrl: `${IMG_BASE}/photo-1631452180519-c014fe946bc7?auto=format&fit=crop&w=900&q=80`,
-        }),
-    ]);
-
-    const existingAddress = await prisma.address.findFirst({
-        where: { userId: customer.id, pincode: "506001", line1: "12, Demo Street" },
-        select: { id: true },
-    });
-
-    const addressData = {
-        userId: customer.id,
-        type: "HOME",
-        isDefault: true,
-        fullName: customer.name,
-        phoneNumber: customer.mobile,
-        line1: "12, Demo Street",
-        line2: "Near City Park",
-        landmark: "Seed Mall",
-        district: "Warangal",
-        state: "Telangana",
-        pincode: "506001",
-    };
-
-    const address = existingAddress
-        ? await prisma.address.update({ where: { id: existingAddress.id }, data: addressData })
-        : await prisma.address.create({ data: addressData });
-
-    const [placedOrder, confirmedOrder, packedOrder, cancelledOrder] = await Promise.all([
-        ensureOrder({
-            marker: "[seed-order-placed]",
-            userId: customer.id,
-            addressId: address.id,
-            productId: products[0].id,
-            quantity: 1,
-            unitPrice: products[0].price,
-            status: "PLACED",
-            notes: "Fresh order waiting for manager action",
-        }),
-        ensureOrder({
-            marker: "[seed-order-confirmed]",
-            userId: customer.id,
-            addressId: address.id,
-            productId: products[1].id,
-            quantity: 2,
-            unitPrice: products[1].price,
-            status: "CONFIRMED",
-            notes: "Accepted and pending QC",
-        }),
-        ensureOrder({
-            marker: "[seed-order-packed]",
-            userId: customer.id,
-            addressId: address.id,
-            productId: products[2].id,
-            quantity: 1,
-            unitPrice: products[2].price,
-            status: "PACKED",
-            notes: "QC passed and ready to dispatch",
-        }),
-        ensureOrder({
-            marker: "[seed-order-return]",
-            userId: customer.id,
-            addressId: address.id,
-            productId: products[3].id,
-            quantity: 1,
-            unitPrice: products[3].price,
-            status: "CANCELLED",
-            notes: "Return request: Packaging was damaged",
-        }),
-    ]);
-
-    const existingReview = await prisma.review.findFirst({
-        where: {
-            userId: customer.id,
-            productId: products[3].id,
+    // ==========================================
+    // 4. PRODUCTS & PRODUCT IMAGES
+    // ==========================================
+    console.log("⏳ Seeding Products & Images...");
+    const product = await prisma.product.upsert({
+        where: { outletId_slug: { outletId: outlet.id, slug: "paneer-butter-masala" } },
+        update: {},
+        create: {
+            title: "Paneer Butter Masala", slug: "paneer-butter-masala", description: "Rich gravy paneer.",
+            producerName: "Chef Sharma", producerStory: "A family recipe passed down for generations.",
+            district: "New Delhi", price: 250, stock: 50, averageRating: 4.5, totalRatingsCount: 1,
+            outletId: outlet.id, categoryId: category.id,
+            images: {
+                create: [
+                    { url: "https://images.unsplash.com/photo-1631452180519-c014fe946bc0", sortOrder: 1 },
+                    { url: "https://images.unsplash.com/photo-1589302168068-964664d93dc0", sortOrder: 2 }
+                ]
+            }
         },
-        orderBy: { createdAt: "desc" },
-        select: { id: true },
     });
 
-    if (existingReview) {
-        await prisma.review.update({
-            where: { id: existingReview.id },
-            data: {
-                rating: 2,
-                comment: "Received damaged package, requesting return.",
-                wouldRecommend: false,
-            },
-        });
-    } else {
-        await prisma.review.create({
-            data: {
-                userId: customer.id,
-                productId: products[3].id,
-                rating: 2,
-                comment: "Received damaged package, requesting return.",
-                wouldRecommend: false,
-            },
-        });
-    }
+    // ==========================================
+    // 5. ADDRESSES
+    // ==========================================
+    console.log("⏳ Seeding Customer Address...");
+    const address = await prisma.address.create({
+        data: {
+            userId: customer.id, type: "HOME", isDefault: true,
+            fullName: "Rahul Customer", phoneNumber: "9000000003",
+            line1: "Flat 402, Royal Apartments", line2: "Near Park", landmark: "Big Bazaar",
+            district: "Indore", state: "Madhya Pradesh", pincode: "452001"
+        },
+    });
 
-    console.log("\n✅ Seed completed successfully with demo operations data.");
-    console.log("\nUsers:");
-    console.log("- Admin: admin@zoyka.com / Admin@123");
-    console.log("- Manager: ops.manager@zoyka.com / Manager@123");
-    console.log("- Producer: producer@zoyka.com / Producer@123");
-    console.log("- Customer: customer@zoyka.com / Customer@123");
-    console.log("\nOutlet key:");
-    console.log(`- ${outlet.key}`);
-    console.log("\nOrders created/updated:");
-    console.log(`- New order: ${placedOrder.id} (PLACED)`);
-    console.log(`- QC pending: ${confirmedOrder.id} (CONFIRMED)`);
-    console.log(`- Ready to dispatch: ${packedOrder.id} (PACKED)`);
-    console.log(`- Return pending sample: ${cancelledOrder.id} (CANCELLED)`);
-}
+    // ==========================================
+    // 6. ORDERS
+    // ==========================================
+    console.log("⏳ Seeding Orders...");
+    const order = await prisma.order.create({
+        data: {
+            userId: customer.id, addressId: address.id, productId: product.id,
+            status: "DELIVERED", quantity: 2, unitPrice: 250, totalAmount: 500,
+            notes: "Please pack extra spicy!"
+        },
+    });
+
+    // ==========================================
+    // 7. CART & WISHLIST
+    // ==========================================
+    console.log("⏳ Seeding Cart & Wishlist...");
+    const cart = await prisma.cart.upsert({
+        where: { userId: customer.id },
+        update: {},
+        create: { userId: customer.id },
+    });
+
+    await prisma.cartItem.create({
+        data: { cartId: cart.id, productId: product.id, quantity: 1 }
+    });
+
+    await prisma.wishlist.create({
+        data: { userId: customer.id, productId: product.id }
+    });
+
+    // ==========================================
+    // 8. REVIEWS & REVIEW IMAGES
+    // ==========================================
+    console.log("⏳ Seeding Reviews...");
+    await prisma.review.create({
+        data: {
+            userId: customer.id, productId: product.id, rating: 5,
+            comment: "Absolutely delicious! Highly recommended.", wouldRecommend: true,
+            images: {
+                create: [{ url: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1", sortOrder: 1 }]
+            }
+        }
+    });
+
+    // ==========================================
+    // 9. MARKETING (Banners, Coupons, Testimonials)
+    // ==========================================
+    console.log("⏳ Seeding Marketing (Banners, Coupons, Testimonials)...");
+    await prisma.banner.create({
+        data: { imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836", link: "/promos", sortOrder: 1, isActive: true }
+    });
+
+    await prisma.coupon.upsert({
+        where: { code: "WELCOME50" },
+        update: {},
+        create: { code: "WELCOME50", description: "Flat 50% Off", discountType: "PERCENTAGE", discountValue: 50, minOrderAmount: 200, maxDiscount: 100, isActive: true, usageLimit: 100 }
+    });
+
+    await prisma.testimonial.create({
+        data: { customerName: "Anita Rao", reviewText: "Zoyka changed how I buy local food!", rating: 5, sortOrder: 1 }
+    });
+
+    // ==========================================
+    // 10. SUPPORT & INQUIRIES
+    // ==========================================
+    console.log("⏳ Seeding Support Queries & Inquiries...");
+    await prisma.contactUsQuery.create({
+        data: { userId: customer.id, name: "Rahul", email: customer.email, phone: customer.mobile, message: "I want to become a vendor on Zoyka." }
+    });
+
+    await prisma.bulkOrderInquiry.create({
+        data: {
+            userId: customer.id, fullName: "Rahul", companyName: "TechCorp", email: "rahul@techcorp.com",
+            phoneNumber: "9000000003", quantityRequired: 100, city: "Indore", state: "MP", pincode: "452001",
+            additionalDetails: "Need 100 corporate gift hampers."
+        }
+    });
+
+    await prisma.paymentDeliveryHelpRequest.create({
+        data: { userId: customer.id, referenceId: order.id, additionalDetails: "Payment was deducted but order shows pending." }
+    });
+
+    // ==========================================
+    // 11. FINANCE (Batches & Payouts)
+    // ==========================================
+    console.log("⏳ Seeding Finance Data...");
+    await prisma.productionBatch.create({
+        data: { outletId: outlet.id, title: "Morning Paneer Prep", unitCount: 100, qualityStatus: "APPROVED", isApproved: true }
+    });
+
+    await prisma.payout.create({
+        data: { outletId: outlet.id, ordersCount: 5, grossAmount: 2500, commission: 250, amount: 2250, status: "COMPLETED" }
+    });
+
+    console.log("\n✅ MASTER SEED COMPLETED SUCCESSFULLY! 🎉");
+    console.log("All 21 Database Models have been populated.");
+};
 
 main()
     .catch((e) => {
-        console.error("❌ Error seeding database:", e);
+        console.error(e);
         process.exit(1);
     })
     .finally(async () => {
