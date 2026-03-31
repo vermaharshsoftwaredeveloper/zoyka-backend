@@ -204,6 +204,25 @@ const main = async () => {
 
     console.log("\n✅ MASTER SEED COMPLETED SUCCESSFULLY! 🎉");
     console.log("All 21 Database Models have been populated.");
+
+    // ==========================================
+    // 12. SYSTEM SETTINGS
+    // ==========================================
+    console.log("⏳ Seeding System Settings...");
+    const defaultSettings = [
+        { category: "General Setting", key: "platformName", value: "Zoyka" },
+        { category: "General Setting", key: "supportEmail", value: "support@zoyka.com" },
+        { category: "Account Information", key: "fullName", value: "Super Admin" },
+        { category: "Account Information", key: "phone", value: "+911234568465" }
+    ];
+
+    for (const setting of defaultSettings) {
+        await prisma.settingConfig.upsert({
+            where: { key: setting.key },
+            update: { value: setting.value, category: setting.category },
+            create: setting
+        });
+    }
 };
 
 main()

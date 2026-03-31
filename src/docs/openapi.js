@@ -3027,6 +3027,78 @@ const openApiSpec = {
         }
       }
     },
+    // ==========================================
+    // ADMIN SYSTEM SETTINGS ROUTES
+    // ==========================================
+    "/api/admin/settings": {
+      get: {
+        tags: ["Admin Settings"],
+        summary: "Get all system settings (optionally filter by category)",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: "category", in: "query", description: "Filter by category name", schema: { type: "string" } }
+        ],
+        responses: { 200: { description: "Settings fetched successfully" } }
+      },
+      post: {
+        tags: ["Admin Settings"],
+        summary: "Create a new system setting",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  category: { type: "string", example: "General Setting" },
+                  key: { type: "string", example: "platformName" },
+                  value: { type: "string", example: "Zoyka" }
+                }
+              }
+            }
+          }
+        },
+        responses: { 201: { description: "Setting created" } }
+      }
+    },
+    "/api/admin/settings/{key}": {
+      get: {
+        tags: ["Admin Settings"],
+        summary: "Get a specific setting by its unique key",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "key", in: "path", required: true, schema: { type: "string" } }],
+        responses: { 200: { description: "Setting fetched successfully" } }
+      },
+      patch: {
+        tags: ["Admin Settings"],
+        summary: "Update a setting's value or category by its key",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "key", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  category: { type: "string", example: "General Setting" },
+                  value: { type: "string", example: "Zoyka Pro" }
+                }
+              }
+            }
+          }
+        },
+        responses: { 200: { description: "Setting updated" } }
+      },
+      delete: {
+        tags: ["Admin Settings"],
+        summary: "Delete a setting by its key",
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "key", in: "path", required: true, schema: { type: "string" } }],
+        responses: { 200: { description: "Setting deleted" } }
+      }
+    },
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
