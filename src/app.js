@@ -17,6 +17,10 @@ app.use(compression());
 app.use(express.json());
 app.use(morgan("dev"));
 
+app.get("/api/health", (req, res) => {
+	res.json({ status: "Zoyka backend is running 🔥" });
+});
+
 app.get("/api-docs.json", (req, res) => {
 	res.json(openApiSpec);
 });

@@ -35,10 +35,6 @@ import adminSettingRoutes from "../modules/setting/admin-setting.routes.js";
 
 const router = Router();
 
-router.get("/health", (req, res) => {
-  res.json({ status: "Zoyka backend is running 🔥" });
-});
-
 router.use("/auth", authRouter);
 router.use("/outlets", outletRouter);
 router.use("/categories", categoryRouter);
