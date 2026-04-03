@@ -26,3 +26,6 @@ export const EMAIL_NAME = process.env.EMAIL_NAME || "Zoykah Support";
 
 // Redis configuration
 export const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+
+// Handshake Key Configuration
+export const HANDSHAKE_KEY = process.env.HANDSHAKE_KEY || "Zoyka_Super_Secret_Key_2026";

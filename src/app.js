@@ -7,6 +7,7 @@ import swaggerUi from "swagger-ui-express";
 import routes from "./routes/index.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import openApiSpec from "./docs/openapi.js";
+import { verifyHandshakeKey } from "./middleware/handshake.middleware.js";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.get("/api-docs.json", (req, res) => {
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
+app.use(verifyHandshakeKey);
 app.use("/api", routes);
 
 app.use(errorHandler);
