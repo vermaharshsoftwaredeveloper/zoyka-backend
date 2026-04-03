@@ -1,7 +1,5 @@
-import bcrypt from "bcryptjs";
 import prisma from "../src/config/prisma.js";
-
-const hashPassword = (plain) => bcrypt.hash(plain, 10);
+import { hashPassword } from "../src/modules/auth/utils/password.utils.js";
 
 const main = async () => {
     console.log("🌱 Starting Master Seed for ALL Models...");
@@ -10,37 +8,74 @@ const main = async () => {
     // 1. USERS (Users Model)
     // ==========================================
     console.log("⏳ Seeding Users...");
+
     const hashedPassword = await hashPassword("Password@123");
 
     const admin = await prisma.user.upsert({
         where: { email: "admin@zoyka.com" },
-        update: {},
-        create: { email: "admin@zoyka.com", mobile: "9000000001", name: "Super Admin", role: "SUPER_ADMIN", password: hashedPassword, isEmailVerified: true },
+        update: {
+            password: hashedPassword
+        },
+        create: {
+            email: "admin@zoyka.com",
+            mobile: "9000000001",
+            name: "Super Admin",
+            role: "SUPER_ADMIN",
+            password: hashedPassword,
+            isEmailVerified: true
+        },
     });
 
     const manager = await prisma.user.upsert({
         where: { email: "manager@zoyka.com" },
-        update: {},
-        create: { email: "manager@zoyka.com", mobile: "9000000002", name: "Ops Manager", role: "MANAGER", password: hashedPassword, isEmailVerified: true },
+        update: { password: hashedPassword },
+        create: {
+            email: "manager@zoyka.com",
+            mobile: "9000000002",
+            name: "Ops Manager",
+            role: "MANAGER",
+            password: hashedPassword,
+            isEmailVerified: true
+        },
     });
 
     const customer = await prisma.user.upsert({
         where: { email: "customer@zoyka.com" },
-        update: {},
-        create: { email: "customer@zoyka.com", mobile: "9000000003", name: "Rahul Customer", role: "USER", password: hashedPassword, isEmailVerified: true },
+        update: { password: hashedPassword },
+        create: {
+            email: "customer@zoyka.com",
+            mobile: "9000000003",
+            name: "Rahul Customer",
+            role: "USER",
+            password: hashedPassword,
+            isEmailVerified: true
+        },
     });
 
     const kitchenOwner = await prisma.user.upsert({
         where: { email: "kitchen@zoyka.com" },
-        update: {},
-        create: { email: "kitchen@zoyka.com", mobile: "9100000001", name: "Chef Sharma", role: "KITCHEN", password: hashedPassword, isEmailVerified: true },
+        update: { password: hashedPassword },
+        create: {
+            email: "kitchen@zoyka.com",
+            mobile: "9100000001",
+            name: "Chef Sharma",
+            role: "KITCHEN",
+            password: hashedPassword,
+            isEmailVerified: true
+        },
     });
 
-    // Added Producer User Here
     const producer = await prisma.user.upsert({
         where: { email: "producer@zoyka.com" },
-        update: {},
-        create: { email: "producer@zoyka.com", mobile: "9000000888", name: "Sample Producer", role: "PRODUCER", password: hashedPassword, isEmailVerified: true },
+        update: { password: hashedPassword },
+        create: {
+            email: "producer@zoyka.com",
+            mobile: "9000000888",
+            name: "Sample Producer",
+            role: "PRODUCER",
+            password: hashedPassword,
+            isEmailVerified: true
+        },
     });
 
     // ==========================================
