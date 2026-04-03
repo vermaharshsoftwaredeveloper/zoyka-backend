@@ -10,7 +10,7 @@ import { requireAuth, authorizeRoles } from "../../middleware/auth.middleware.js
 
 const router = Router();
 
-router.use(requireAuth, authorizeRoles("ADMIN", "MANAGER"));
+router.use(requireAuth, authorizeRoles("ADMIN", "MANAGER", "SUPER_ADMIN"));
 
 router.get("/", getAllCategoriesAdmin);
 router.post("/", createCategory);

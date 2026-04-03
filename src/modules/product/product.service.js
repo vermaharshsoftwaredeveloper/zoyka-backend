@@ -22,9 +22,9 @@ const toProductCard = (product) => {
   const ratingSummary = product.reviews
     ? getRatingSummary(product.reviews)
     : {
-        averageRating: product.averageRating ?? 0,
-        totalRatingsCount: product.totalRatingsCount ?? 0,
-      };
+      averageRating: product.averageRating ?? 0,
+      totalRatingsCount: product.totalRatingsCount ?? 0,
+    };
 
   return {
     id: product.id,
@@ -350,11 +350,11 @@ export const getTopPicksForUserService = async ({ userId, limit }) => {
       },
       ...(preferredOutletIds.length || preferredDistricts.length
         ? {
-            OR: [
-              ...(preferredOutletIds.length ? [{ outletId: { in: preferredOutletIds } }] : []),
-              ...(preferredDistricts.length ? [{ district: { in: preferredDistricts } }] : []),
-            ],
-          }
+          OR: [
+            ...(preferredOutletIds.length ? [{ outletId: { in: preferredOutletIds } }] : []),
+            ...(preferredDistricts.length ? [{ district: { in: preferredDistricts } }] : []),
+          ],
+        }
         : {}),
     },
     include: getProductCardInclude(),
@@ -395,4 +395,40 @@ export const getTopPicksForUserService = async ({ userId, limit }) => {
   }
 
   return picks;
+};
+
+export const getBestsellersByDepartmentService = async (departmentId, limit) => {
+  const products = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      category: {
+        departmentId: departmentId,
+      },
+    },
+    include: getProductCardInclude(),
+    orderBy: [
+      { totalRatingsCount: "desc" },
+      { averageRating: "desc" },
+    ],
+    take: limit,
+  });
+
+  return products.map(toProductCard);
+};
+
+export const getBestsellersByOutletService = async (outletId, limit) => {
+  const products = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      outletId: outletId,
+    },
+    include: getProductCardInclude(),
+    orderBy: [
+      { totalRatingsCount: "desc" },
+      { averageRating: "desc" },
+    ],
+    take: limit,
+  });
+
+  return products.map(toProductCard);
 };

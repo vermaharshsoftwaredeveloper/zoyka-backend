@@ -41,6 +41,7 @@ const openApiSpec = {
     { name: "Admin Coupons" },
     { name: "Admin Banners" },
     { name: "Operations Manager" },
+    { name: "Admin Departments" },
   ],
   components: {
     securitySchemes: {
@@ -511,6 +512,8 @@ const openApiSpec = {
           },
         },
       },
+      // ... existing code inside components.schemas ...
+
       Category: {
         type: "object",
         properties: {
@@ -518,7 +521,17 @@ const openApiSpec = {
           name: { type: "string", example: "Spices" },
           slug: { type: "string", example: "spices" },
           description: { type: "string", nullable: true, example: "Fresh organic spices" },
-          isActive: { type: "boolean", example: true },
+          imageUrl: { type: "string", format: "uri", nullable: true, example: "https://zoyka-images.s3.amazonaws.com/spices-banner.jpg" }, // 🔥 NEW
+          isActive: { type: "boolean", example: true }, // 🔥 NEW
+          departmentId: { type: "string", format: "uuid", nullable: true }, // 🔥 NEW
+          department: { // 🔥 NEW
+            type: "object",
+            nullable: true,
+            properties: {
+              id: { type: "string", format: "uuid" },
+              name: { type: "string", example: "Kisan Setu" }
+            }
+          },
           _count: {
             type: "object",
             properties: {
@@ -528,6 +541,66 @@ const openApiSpec = {
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
         },
+      },
+      CreateCategoryRequest: {
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: { type: "string", example: "Handicrafts" },
+          slug: { type: "string", example: "handicrafts" },
+          description: { type: "string", example: "Local handmade crafts" },
+          departmentId: { type: "string", format: "uuid", nullable: true },
+          imageUrl: { type: "string", format: "uri", nullable: true },
+          isActive: { type: "boolean", example: true }
+        },
+      },
+      UpdateCategoryRequest: {
+        type: "object",
+        properties: {
+          name: { type: "string", example: "Updated Spices" },
+          slug: { type: "string", example: "updated-spices" },
+          description: { type: "string", example: "Updated description here" },
+          departmentId: { type: "string", format: "uuid", nullable: true },
+          imageUrl: { type: "string", format: "uri", nullable: true },
+          isActive: { type: "boolean", example: true }
+        },
+      },
+      Department: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          name: { type: "string", example: "Kaarigar" },
+          slug: { type: "string", example: "kaarigar" },
+          description: { type: "string", nullable: true, example: "Handcrafted artisan products" },
+          isActive: { type: "boolean", example: true },
+          _count: {
+            type: "object",
+            properties: {
+              categories: { type: "integer", example: 5 },
+              regions: { type: "integer", example: 3 },
+              outlets: { type: "integer", example: 12 }
+            }
+          },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        }
+      },
+      CreateDepartmentRequest: {
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: { type: "string", example: "Kaarigar" },
+          slug: { type: "string", example: "kaarigar" },
+          description: { type: "string", example: "Handcrafted artisan products" },
+        }
+      },
+      UpdateDepartmentRequest: {
+        type: "object",
+        properties: {
+          name: { type: "string", example: "Kaarigar Premium" },
+          slug: { type: "string", example: "kaarigar-premium" },
+          description: { type: "string", nullable: true },
+        }
       },
       AdminCreateTestimonialRequest: {
         type: "object",
@@ -611,23 +684,6 @@ const openApiSpec = {
           link: { type: "string", format: "uri", nullable: true, example: "https://zoyka.in/products/organic-turmeric-powder" },
           sortOrder: { type: "integer", example: 0 },
           isActive: { type: "boolean", example: true },
-        },
-      },
-      CreateCategoryRequest: {
-        type: "object",
-        required: ["name"],
-        properties: {
-          name: { type: "string", example: "Handicrafts" },
-          slug: { type: "string", example: "handicrafts" },
-          description: { type: "string", example: "Local handmade crafts" },
-        },
-      },
-      UpdateCategoryRequest: {
-        type: "object",
-        properties: {
-          name: { type: "string", example: "Updated Spices" },
-          slug: { type: "string", example: "updated-spices" },
-          description: { type: "string", example: "Updated description here" },
         },
       },
       Region: {
@@ -816,7 +872,7 @@ const openApiSpec = {
       post: {
         tags: ["Auth"],
         summary: "Create a new Admin or Manager (Requires ADMIN role)",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1151,7 +1207,7 @@ const openApiSpec = {
       get: {
         tags: ["Products"],
         summary: "Get personalized top picks for logged-in user",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "limit",
@@ -1258,7 +1314,7 @@ const openApiSpec = {
       post: {
         tags: ["Reviews"],
         summary: "Create review for product",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "productId",
@@ -1362,7 +1418,7 @@ const openApiSpec = {
       get: {
         tags: ["Addresses"],
         summary: "List user addresses",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         responses: {
           200: {
             description: "Addresses list",
@@ -1386,7 +1442,7 @@ const openApiSpec = {
       post: {
         tags: ["Addresses"],
         summary: "Create new address",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1406,7 +1462,7 @@ const openApiSpec = {
       patch: {
         tags: ["Addresses"],
         summary: "Update address",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "addressId",
@@ -1432,7 +1488,7 @@ const openApiSpec = {
       delete: {
         tags: ["Addresses"],
         summary: "Delete address",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "addressId",
@@ -1452,7 +1508,7 @@ const openApiSpec = {
       get: {
         tags: ["Wishlist"],
         summary: "List wishlist items",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         responses: {
           200: { description: "Wishlist fetched" },
         },
@@ -1460,7 +1516,7 @@ const openApiSpec = {
       post: {
         tags: ["Wishlist"],
         summary: "Add product to wishlist",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1478,7 +1534,7 @@ const openApiSpec = {
       delete: {
         tags: ["Wishlist"],
         summary: "Remove product from wishlist",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "productId",
@@ -1496,7 +1552,7 @@ const openApiSpec = {
       get: {
         tags: ["Cart"],
         summary: "Get user cart",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         responses: {
           200: {
             description: "Cart fetched",
@@ -1519,7 +1575,7 @@ const openApiSpec = {
       post: {
         tags: ["Cart"],
         summary: "Add item to cart",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1537,7 +1593,7 @@ const openApiSpec = {
       patch: {
         tags: ["Cart"],
         summary: "Update item quantity",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "itemId",
@@ -1561,7 +1617,7 @@ const openApiSpec = {
       delete: {
         tags: ["Cart"],
         summary: "Remove cart item",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "itemId",
@@ -1579,7 +1635,7 @@ const openApiSpec = {
       delete: {
         tags: ["Cart"],
         summary: "Clear cart",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         responses: {
           200: { description: "Cart cleared" },
         },
@@ -1589,7 +1645,7 @@ const openApiSpec = {
       get: {
         tags: ["Orders"],
         summary: "List user orders",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         responses: {
           200: {
             description: "Orders fetched",
@@ -1615,7 +1671,7 @@ const openApiSpec = {
       post: {
         tags: ["Orders"],
         summary: "Checkout cart as independent product orders",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1635,7 +1691,7 @@ const openApiSpec = {
       get: {
         tags: ["Orders"],
         summary: "Get order details and tracking status",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "orderId",
@@ -1759,7 +1815,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Products"],
         summary: "List products (read-only admin access)",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "search", in: "query", schema: { type: "string" } },
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
@@ -1792,7 +1848,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Products"],
         summary: "Get product by id (read-only admin access)",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Admin product fetched" },
@@ -1803,7 +1859,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Outlets"],
         summary: "List outlets for admin management",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "search", in: "query", schema: { type: "string" } },
           { name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] } },
@@ -1833,7 +1889,7 @@ const openApiSpec = {
       post: {
         tags: ["Admin Outlets"],
         summary: "Create outlet",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1851,7 +1907,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Outlets"],
         summary: "Get outlet by id for admin",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "outletId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Outlet fetched" },
@@ -1860,7 +1916,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin Outlets"],
         summary: "Update outlet",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "outletId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
@@ -1877,7 +1933,7 @@ const openApiSpec = {
       delete: {
         tags: ["Admin Outlets"],
         summary: "Soft delete outlet (set inactive)",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "outletId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Outlet deleted" },
@@ -1888,7 +1944,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Testimonials"],
         summary: "List testimonials for admin management",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "search", in: "query", schema: { type: "string" } },
           { name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] } },
@@ -1918,7 +1974,7 @@ const openApiSpec = {
       post: {
         tags: ["Admin Testimonials"],
         summary: "Create testimonial",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1936,7 +1992,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Testimonials"],
         summary: "Get testimonial by id",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "testimonialId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Testimonial fetched" },
@@ -1945,7 +2001,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin Testimonials"],
         summary: "Update testimonial",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "testimonialId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
@@ -1962,7 +2018,7 @@ const openApiSpec = {
       delete: {
         tags: ["Admin Testimonials"],
         summary: "Delete testimonial",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "testimonialId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Testimonial deleted" },
@@ -1973,7 +2029,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Coupons"],
         summary: "List coupons for admin management",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "search", in: "query", schema: { type: "string" } },
           { name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] } },
@@ -2003,7 +2059,7 @@ const openApiSpec = {
       post: {
         tags: ["Admin Coupons"],
         summary: "Create coupon",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -2021,7 +2077,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Coupons"],
         summary: "Get coupon by id",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "couponId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Coupon fetched" },
@@ -2030,7 +2086,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin Coupons"],
         summary: "Update coupon",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "couponId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
@@ -2047,7 +2103,7 @@ const openApiSpec = {
       delete: {
         tags: ["Admin Coupons"],
         summary: "Delete coupon",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "couponId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Coupon deleted" },
@@ -2058,7 +2114,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Banners"],
         summary: "List banners for admin management",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "isActive", in: "query", schema: { type: "string", enum: ["true", "false"] } },
           { name: "page", in: "query", schema: { type: "integer", default: 1 } },
@@ -2087,7 +2143,7 @@ const openApiSpec = {
       post: {
         tags: ["Admin Banners"],
         summary: "Create banner",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -2105,7 +2161,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Banners"],
         summary: "Get banner by id",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "bannerId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Banner fetched" },
@@ -2114,7 +2170,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin Banners"],
         summary: "Update banner",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "bannerId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
@@ -2131,7 +2187,7 @@ const openApiSpec = {
       delete: {
         tags: ["Admin Banners"],
         summary: "Delete banner",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "bannerId", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Banner deleted" },
@@ -2142,7 +2198,7 @@ const openApiSpec = {
       get: {
         tags: ["Profile"],
         summary: "Get logged-in user profile",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         responses: {
           200: {
             description: "Profile fetched",
@@ -2163,7 +2219,7 @@ const openApiSpec = {
       patch: {
         tags: ["Profile"],
         summary: "Update full name or profile picture",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -2183,7 +2239,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get admin dashboard analytics and aggregations",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "period",
@@ -2218,7 +2274,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get all categories (including inactive)",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         responses: {
           200: {
             description: "Categories fetched successfully",
@@ -2239,7 +2295,7 @@ const openApiSpec = {
       post: {
         tags: ["Admin"],
         summary: "Create a new category",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/CreateCategoryRequest" } } },
@@ -2267,7 +2323,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin"],
         summary: "Update a category",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
@@ -2280,7 +2336,7 @@ const openApiSpec = {
       delete: {
         tags: ["Admin"],
         summary: "Delete a category (Fails if products are attached)",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Category deleted successfully" },
@@ -2292,7 +2348,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin"],
         summary: "Toggle category active/inactive status",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Category status toggled successfully" },
@@ -2303,7 +2359,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get all regions with manager, category, and outlet counts",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "categoryId",
@@ -2333,7 +2389,7 @@ const openApiSpec = {
       post: {
         tags: ["Admin"],
         summary: "Create a new region, assign manager and category",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/CreateRegionRequest" } } },
@@ -2362,7 +2418,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin"],
         summary: "Update a region (Rename or change Manager)",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
@@ -2376,7 +2432,7 @@ const openApiSpec = {
       delete: {
         tags: ["Admin"],
         summary: "Delete a region (Fails if outlets are attached)",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Region deleted successfully" },
@@ -2388,7 +2444,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin"],
         summary: "Toggle region active/inactive status",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Region status toggled successfully" },
@@ -2399,7 +2455,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get list of all Operational Managers and their assigned regions",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         responses: {
           200: {
             description: "Managers fetched successfully",
@@ -2426,7 +2482,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get all producers (outlets), optionally filter by region",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "regionId",
@@ -2456,7 +2512,7 @@ const openApiSpec = {
       post: {
         tags: ["Admin"],
         summary: "Create a new producer (outlet)",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/CreateProducerRequest" } } },
@@ -2485,7 +2541,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get a producer by ID",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: {
@@ -2498,7 +2554,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin"],
         summary: "Update a producer",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
@@ -2514,7 +2570,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin"],
         summary: "Toggle producer active/inactive status",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Producer status toggled successfully" },
@@ -2525,7 +2581,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get all artisans, filterable by category",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "categoryId",
@@ -2555,7 +2611,7 @@ const openApiSpec = {
       post: {
         tags: ["Admin"],
         summary: "Create a new artisan (outlet)",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: { "application/json": { schema: { $ref: "#/components/schemas/CreateProducerRequest" } } },
@@ -2570,7 +2626,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get an artisan by ID",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: {
@@ -2583,7 +2639,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin"],
         summary: "Update an artisan",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         requestBody: {
           required: true,
@@ -2598,7 +2654,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin"],
         summary: "Toggle artisan active/inactive status",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Artisan status toggled successfully" },
@@ -2609,7 +2665,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get paginated list of all orders with deep filtering and search",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "page", in: "query", schema: { type: "integer", default: 1 } },
           { name: "limit", in: "query", schema: { type: "integer", default: 10 } },
@@ -2631,7 +2687,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get full A-to-Z details of a specific order",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: {
           200: { description: "Order details fetched successfully" },
@@ -2644,7 +2700,7 @@ const openApiSpec = {
       get: {
         tags: ["Operations Manager"],
         summary: "Get outlet operations dashboard stats",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
           { name: "lowStockThreshold", in: "query", schema: { type: "integer", default: 10 } }
@@ -2658,7 +2714,7 @@ const openApiSpec = {
       get: {
         tags: ["Operations Manager"],
         summary: "List new orders waiting for acceptance",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
           { name: "page", in: "query", schema: { type: "integer", default: 1 } },
@@ -2673,7 +2729,7 @@ const openApiSpec = {
       patch: {
         tags: ["Operations Manager"],
         summary: "Accept or reject a newly placed order",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "orderId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
@@ -2702,7 +2758,7 @@ const openApiSpec = {
       get: {
         tags: ["Operations Manager"],
         summary: "List orders pending QC",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
           { name: "page", in: "query", schema: { type: "integer", default: 1 } },
@@ -2717,7 +2773,7 @@ const openApiSpec = {
       patch: {
         tags: ["Operations Manager"],
         summary: "Pass or fail QC for an order",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "orderId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
@@ -2746,7 +2802,7 @@ const openApiSpec = {
       get: {
         tags: ["Operations Manager"],
         summary: "Get dispatch queues for packing and shipping",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
           { name: "page", in: "query", schema: { type: "integer", default: 1 } },
@@ -2761,7 +2817,7 @@ const openApiSpec = {
       get: {
         tags: ["Operations Manager"],
         summary: "List return-pending orders with return reason and latest feedback",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
           { name: "page", in: "query", schema: { type: "integer", default: 1 } },
@@ -2776,7 +2832,7 @@ const openApiSpec = {
       get: {
         tags: ["Operations Manager"],
         summary: "List low stock products for managed outlets",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
           { name: "threshold", in: "query", schema: { type: "integer", default: 10 } },
@@ -2792,7 +2848,7 @@ const openApiSpec = {
       patch: {
         tags: ["Operations Manager"],
         summary: "Update stock for a managed outlet product",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
@@ -2821,7 +2877,7 @@ const openApiSpec = {
       get: {
         tags: ["Operations Manager"],
         summary: "List products in managed outlets",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } },
           { name: "page", in: "query", schema: { type: "integer", default: 1 } },
@@ -2834,7 +2890,7 @@ const openApiSpec = {
       post: {
         tags: ["Operations Manager"],
         summary: "Create a product for a managed outlet",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -2852,7 +2908,7 @@ const openApiSpec = {
       get: {
         tags: ["Operations Manager"],
         summary: "Get a managed outlet product by id",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
@@ -2864,7 +2920,7 @@ const openApiSpec = {
       patch: {
         tags: ["Operations Manager"],
         summary: "Update a product in managed outlets",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
@@ -2884,7 +2940,7 @@ const openApiSpec = {
       delete: {
         tags: ["Operations Manager"],
         summary: "Soft delete a product in managed outlets",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
           { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
@@ -2898,7 +2954,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Finance"],
         summary: "Get total revenue metrics and a filtered list of vendor payouts",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           {
             name: "vertical",
@@ -2963,7 +3019,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get customer dashboard stats and paginated list with dynamic Tiers",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "page", in: "query", schema: { type: "integer", default: 1 } },
           { name: "limit", in: "query", schema: { type: "integer", default: 10 } },
@@ -2976,7 +3032,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get the 10 newest registered customers",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         responses: { 200: { description: "New customers fetched successfully" } }
       }
     },
@@ -2984,7 +3040,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get full A-to-Z profile of a specific customer including their orders",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
           { name: "page", in: "query", schema: { type: "integer", default: 1 } },
@@ -2999,7 +3055,7 @@ const openApiSpec = {
       patch: {
         tags: ["Admin"],
         summary: "Manually mark a customer's email as verified",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
         responses: { 200: { description: "Customer verified successfully" } }
       }
@@ -3008,7 +3064,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Get 5-section analytics dashboard data with category and region filtering",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "categoryId", in: "query", schema: { type: "string", format: "uuid" } },
           { name: "regionId", in: "query", schema: { type: "string", format: "uuid" } },
@@ -3043,7 +3099,7 @@ const openApiSpec = {
       get: {
         tags: ["Admin Settings"],
         summary: "Get all system settings (optionally filter by category)",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
           { name: "category", in: "query", description: "Filter by category name", schema: { type: "string" } }
         ],
@@ -3052,7 +3108,7 @@ const openApiSpec = {
       post: {
         tags: ["Admin Settings"],
         summary: "Create a new system setting",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -3075,14 +3131,14 @@ const openApiSpec = {
       get: {
         tags: ["Admin Settings"],
         summary: "Get a specific setting by its unique key",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "key", in: "path", required: true, schema: { type: "string" } }],
         responses: { 200: { description: "Setting fetched successfully" } }
       },
       patch: {
         tags: ["Admin Settings"],
         summary: "Update a setting's value or category by its key",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "key", in: "path", required: true, schema: { type: "string" } }],
         requestBody: {
           required: true,
@@ -3103,9 +3159,119 @@ const openApiSpec = {
       delete: {
         tags: ["Admin Settings"],
         summary: "Delete a setting by its key",
-        security: [{ bearerAuth: [] }],
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [{ name: "key", in: "path", required: true, schema: { type: "string" } }],
         responses: { 200: { description: "Setting deleted" } }
+      }
+    },
+    // ==========================================
+    // ADMIN DEPARTMENTS ROUTES
+    // ==========================================
+    "/api/admin/departments": {
+      get: {
+        tags: ["Admin Departments"],
+        summary: "Get all departments (including inactive)",
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
+        responses: {
+          200: {
+            description: "Departments fetched successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: { type: "array", items: { $ref: "#/components/schemas/Department" } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Admin Departments"],
+        summary: "Create a new department",
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/CreateDepartmentRequest" } } },
+        },
+        responses: {
+          201: {
+            description: "Department created",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    message: { type: "string", example: "Department created successfully" },
+                    data: { $ref: "#/components/schemas/Department" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/admin/departments/{id}": {
+      patch: {
+        tags: ["Admin Departments"],
+        summary: "Update a department",
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateDepartmentRequest" } } },
+        },
+        responses: {
+          200: { description: "Department updated successfully" },
+        },
+      },
+      delete: {
+        tags: ["Admin Departments"],
+        summary: "Delete a department (Fails if categories or outlets are attached)",
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Department deleted successfully" },
+          400: { description: "Cannot delete department with active categories or outlets" },
+        },
+      },
+    },
+    "/api/admin/departments/{id}/toggle-status": {
+      patch: {
+        tags: ["Admin Departments"],
+        summary: "Toggle department active/inactive status",
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+        responses: {
+          200: { description: "Department status toggled successfully" },
+        },
+      },
+    },
+    "/api/products/bestsellers/department/{departmentId}": {
+      get: {
+        tags: ["Products"],
+        summary: "Get bestsellers for a specific department",
+        parameters: [
+          { name: "departmentId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 10 } },
+        ],
+        responses: { 200: { description: "Department bestsellers fetched" } }
+      }
+    },
+    "/api/products/bestsellers/outlet/{outletId}": {
+      get: {
+        tags: ["Products"],
+        summary: "Get bestsellers for a specific outlet",
+        parameters: [
+          { name: "outletId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 10 } },
+        ],
+        responses: { 200: { description: "Outlet bestsellers fetched" } }
       }
     },
 

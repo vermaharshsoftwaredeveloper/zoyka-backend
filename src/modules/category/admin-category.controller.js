@@ -32,6 +32,6 @@ export const toggleCategoryStatus = asyncHandler(async (req, res) => {
 });
 
 export const deleteCategory = asyncHandler(async (req, res) => {
-    const response = await adminCategoryService.deleteCategoryService(req.params.id);
-    res.status(200).json({ success: true, message: response.message });
+    await adminCategoryService.deleteCategoryService(req.params.id);
+    res.status(200).json({ success: true, message: "Category deleted successfully" });
 });

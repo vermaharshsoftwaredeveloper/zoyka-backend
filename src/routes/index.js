@@ -32,6 +32,7 @@ import adminFinanceRoutes from "../modules/finance/admin-finance.routes.js";
 import adminCustomerRoutes from "../modules/customer/admin-customer.routes.js";
 import adminAnalyticsRoutes from "../modules/analytics/admin-analytics.routes.js";
 import adminSettingRoutes from "../modules/setting/admin-setting.routes.js";
+import adminDepartmentRoutes from "../modules/department/admin-department.routes.js";
 
 const router = Router();
 
@@ -70,5 +71,6 @@ router.use("/admin/finance", adminFinanceRoutes);
 router.use("/admin/customers", adminCustomerRoutes);
 router.use("/admin/analytics", adminAnalyticsRoutes);
 router.use("/admin/settings", adminSettingRoutes);
+router.use("/admin/departments", adminDepartmentRoutes);
 
 export default router;

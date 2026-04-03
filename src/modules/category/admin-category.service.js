@@ -6,7 +6,10 @@ const generateSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').re
 export const getAllCategoriesAdminService = async () => {
     return await prisma.category.findMany({
         orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { products: true } } }
+        include: {
+            department: true,
+            _count: { select: { products: true } }
+        }
     });
 };
 
@@ -62,8 +65,7 @@ export const deleteCategoryService = async (id) => {
     });
 
     if (!category) throw new ApiError(404, "Category not found");
-    if (category._count.products > 0) throw new ApiError(400, `Cannot delete category with ${category._count.products} products attached.`);
+    if (category._count.products > 0) throw new ApiError(400, "Cannot delete category with active products");
 
-    await prisma.category.delete({ where: { id } });
-    return { message: "Category deleted successfully" };
+    return await prisma.category.delete({ where: { id } });
 };

@@ -53,8 +53,8 @@ model Outlet {
   qualityScore    Float?  @default(0)
   address         String?
 
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
 
   ownerId String?
   owner   User?   @relation("OutletOwner", fields: [ownerId], references: [id], onDelete: SetNull)
@@ -64,11 +64,13 @@ model Outlet {
 
   productionBatches ProductionBatch[]
   payouts           Payout[]
+  category          Category?         @relation(fields: [categoryId], references: [id])
+  categoryId        String?
 
   @@index([isActive])
   @@index([regionId])
   @@index([ownerId])
-  @@index([categoryId])
+  @@index([departmentId])
 }
 
 model Testimonial {
@@ -355,17 +357,19 @@ model Region {
   managerId String?
   manager   User?   @relation("RegionManager", fields: [managerId], references: [id], onDelete: SetNull)
 
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
 
   outlets Outlet[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  category   Category? @relation(fields: [categoryId], references: [id])
+  categoryId String?
 
   @@index([isActive])
   @@index([managerId])
-  @@index([categoryId])
+  @@index([departmentId])
 }
 
 model Category {
@@ -373,7 +377,11 @@ model Category {
   name        String  @unique
   slug        String  @unique
   description String?
+  imageUrl    String?
   isActive    Boolean @default(true)
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
 
   products Product[]
   regions  Region[]
@@ -383,6 +391,7 @@ model Category {
   updatedAt DateTime @updatedAt
 
   @@index([isActive])
+  @@index([departmentId])
 }
 
 model ProductionBatch {
@@ -425,4 +434,21 @@ model SettingConfig {
   updatedAt DateTime @updatedAt
 
   @@index([category])
+}
+
+model Department {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+
+  categories Category[]
+  regions    Region[]
+  outlets    Outlet[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
 }

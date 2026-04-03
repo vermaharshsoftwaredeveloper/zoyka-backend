@@ -8,8 +8,15 @@ export const listProductsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(12),
 });
 
-export const bestsellerQuerySchema = z.object({
-  categorySlug: z.string().trim().min(1),
+export const departmentParamSchema = z.object({
+  departmentId: z.string().uuid("Invalid Department ID format"),
+});
+
+export const outletParamSchema = z.object({
+  outletId: z.string().uuid("Invalid Outlet ID format"),
+});
+
+export const bestsellerLimitSchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(10),
 });
 
