@@ -4,6 +4,7 @@ import {
 	getDepartmentBestsellers,
 	getOutletBestsellers,
 	getProductById,
+	getSimilarProducts,
 	getTopPicksForUser,
 	listProducts,
 } from "./product.controller.js";
@@ -15,5 +16,6 @@ router.get("/bestsellers/department/:departmentId", getDepartmentBestsellers);
 router.get("/bestsellers/outlet/:outletId", getOutletBestsellers);
 router.get("/top-picks", requireAuth, getTopPicksForUser);
 router.get("/:productId", getProductById);
+router.get("/:productId/similar", getSimilarProducts);
 
 export default router;

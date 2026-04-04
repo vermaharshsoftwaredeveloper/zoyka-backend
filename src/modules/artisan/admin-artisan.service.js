@@ -6,7 +6,10 @@ const generateKey = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
 export const getAllArtisansAdminService = async (filters) => {
     const where = { owner: { role: 'ARTISAN' } };
+
     if (filters.categoryId) where.categoryId = filters.categoryId;
+    if (filters.regionId) where.regionId = filters.regionId;
+    if (filters.outletId) where.id = filters.outletId;
 
     const artisans = await prisma.outlet.findMany({
         where,
@@ -53,10 +56,6 @@ export const getAllArtisansAdminService = async (filters) => {
 };
 
 export const createArtisanService = async (data) => {
-    const key = generateKey(data.outletName);
-    const existingOutlet = await prisma.outlet.findUnique({ where: { key } });
-    if (existingOutlet) throw new ApiError(400, "An Outlet with this name already exists.");
-
     let user = await prisma.user.findFirst({
         where: { OR: [{ email: data.email }, { mobile: data.mobile }] }
     });
@@ -67,6 +66,7 @@ export const createArtisanService = async (data) => {
 
     if (!user) {
         const defaultPassword = await bcrypt.hash("Zoyka@123", 10);
+
         user = await prisma.user.create({
             data: {
                 name: data.artisanName,
@@ -79,15 +79,13 @@ export const createArtisanService = async (data) => {
         });
     }
 
-    return await prisma.outlet.create({
+    //  Link artisan to existing outlet
+    return await prisma.outlet.update({
+        where: { id: data.outletId },
         data: {
-            key,
-            name: data.outletName,
-            address: data.address,
+            ownerId: user.id,
             monthlyCapacity: data.monthlyCapacity,
-            categoryId: data.categoryId,
-            regionId: data.regionId,
-            ownerId: user.id
+            address: data.address
         }
     });
 };

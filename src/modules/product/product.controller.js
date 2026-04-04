@@ -12,6 +12,7 @@ import {
   getBestsellersByOutletService,
   getProductByIdService,
   getTopPicksForUserService,
+  getSimilarProductsService,
   listProductsService,
 } from "./product.service.js";
 
@@ -61,8 +62,28 @@ export const getOutletBestsellers = asyncHandler(async (req, res) => {
 
 export const getTopPicksForUser = asyncHandler(async (req, res) => {
   const { limit } = parseQuery(topPicksQuerySchema, req.query);
-  const userId = req.user.id;
-  const data = await getTopPicksForUserService(userId, limit);
 
-  res.status(200).json({ message: "Top picks fetched successfully", data });
+  const userId = req.user.id;
+
+  const data = await getTopPicksForUserService({
+    userId,
+    limit,
+  });
+
+  res.status(200).json({
+    message: "Top picks fetched successfully",
+    data,
+  });
+});
+
+export const getSimilarProducts = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+  const { limit } = parseQuery(topPicksQuerySchema, req.query);
+
+  const data = await getSimilarProductsService(productId, limit);
+
+  res.status(200).json({
+    message: "Similar products fetched successfully",
+    data,
+  });
 });

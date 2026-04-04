@@ -285,19 +285,13 @@ export const getTopPicksForUserService = async ({ userId, limit }) => {
     }),
     prisma.cart.findUnique({
       where: { userId },
-      select: {
-        items: {
-          select: {
-            product: {
-              select: {
-                id: true,
-                outletId: true,
-                district: true,
-              },
+        include: {
+          items: {
+            include: {
+              product: true,
             },
           },
-        },
-      },
+        },  
     }),
     prisma.review.findMany({
       where: { userId },
@@ -433,4 +427,54 @@ export const getBestsellersByOutletService = async (outletId, limit) => {
   });
 
   return products.map(toProductCard);
+};
+
+export const getSimilarProductsService = async (productId, limit = 6) => {
+  try {
+    //  ensure limit is number
+    limit = Number(limit) || 6;
+
+    const currentProduct = await prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        categoryId: true,
+        outletId: true,
+        district: true,
+      },
+    });
+
+    //  handle null properly
+    if (!currentProduct) {
+      throw new ApiError(404, "Product not found");
+    }
+
+    const products = await prisma.product.findMany({
+      where: {
+        isActive: true,
+        stock: { gt: 0 },
+        id: { not: productId },
+
+        OR: [
+          { categoryId: currentProduct.categoryId },
+          { outletId: currentProduct.outletId },
+          { district: currentProduct.district },
+        ],
+      },
+      include: {
+        category: { select: { id: true, slug: true, name: true } },
+        images: { orderBy: { sortOrder: "asc" } },
+      },
+      orderBy: [
+        { totalRatingsCount: "desc" },
+        { averageRating: "desc" },
+      ],
+      take: limit,
+    });
+
+    return products;
+  } catch (err) {
+    console.error(" Similar Products Service Error:", err);
+    throw new ApiError(500, "Failed to fetch similar products");
+  }
 };

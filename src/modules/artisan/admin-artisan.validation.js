@@ -1,11 +1,13 @@
 import { z } from "zod";
 
 export const getArtisansQuerySchema = z.object({
-    categoryId: z.string().uuid("Invalid Category ID").optional(),
+  categoryId: z.string().uuid().optional(),
+  regionId: z.string().uuid().optional(),
+  outletId: z.string().uuid().optional(),
 });
 
 export const createArtisanSchema = z.object({
-    outletName: z.string().trim().min(2, "Outlet name required"),
+    outletId: z.string().uuid("Outlet required"),
     artisanName: z.string().trim().min(2, "Artisan name required"),
     mobile: z.string().trim().min(10, "Valid mobile required"),
     email: z.string().email("Valid email required"),

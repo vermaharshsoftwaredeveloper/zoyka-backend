@@ -34,7 +34,8 @@ export const getAllRegionsAdminService = async (filters) => {
         id: r.id,
         name: r.name,
         isActive: r.isActive,
-        category: r.category,
+        state: r.state,
+        district: r.district,
         manager: r.manager,
         totalOutlets: r._count.outlets,
         activeProducersCount: r.outlets.length
@@ -42,7 +43,7 @@ export const getAllRegionsAdminService = async (filters) => {
 };
 
 export const createRegionService = async (data) => {
-    const existingRegion = await prisma.region.findUnique({ where: { name: data.name } });
+    const existingRegion = await prisma.region.findUnique({ where: { name: data.name,district: data.district } });
     if (existingRegion) {
         throw new ApiError(400, "A region with this name already exists.");
     }

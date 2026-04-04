@@ -33,6 +33,7 @@ import adminCustomerRoutes from "../modules/customer/admin-customer.routes.js";
 import adminAnalyticsRoutes from "../modules/analytics/admin-analytics.routes.js";
 import adminSettingRoutes from "../modules/setting/admin-setting.routes.js";
 import adminDepartmentRoutes from "../modules/department/admin-department.routes.js";
+import DepartmentRouter from "../modules/department/department.routes.js";
 
 const router = Router();
 
@@ -51,6 +52,7 @@ router.use("/bulk-order-inquiries", bulkOrderInquiryRouter);
 router.use("/payment-delivery-help", helpRequestRouter);
 router.use("/profile", userProfileRouter);
 router.use("/banners", bannerRouter);
+router.use("/departments", DepartmentRouter);
 
 
 // Admin Routes

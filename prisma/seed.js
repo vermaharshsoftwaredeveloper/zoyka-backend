@@ -79,13 +79,28 @@ const main = async () => {
     // 4. REGIONS
     // ==========================================
     console.log("⏳ Seeding Regions...");
-    const regionsData = ["North India", "South India", "West India"];
+    const regionsData = [
+        { name: "North India", state: "Delhi", district: "New Delhi" },
+        { name: "South India", state: "Karnataka", district: "Bangalore" },
+        { name: "West India", state: "Maharashtra", district: "Mumbai" }
+    ];
+
     const dbRegions = {};
-    for (const regionName of regionsData) {
-        dbRegions[regionName] = await prisma.region.upsert({
-            where: { name: regionName },
-            update: { managerId: manager.id },
-            create: { name: regionName, isActive: true, managerId: manager.id },
+    for (const reg of regionsData) {
+        dbRegions[reg.name] = await prisma.region.upsert({
+            where: { name: reg.name },
+            update: {
+                managerId: manager.id,
+                state: reg.state,
+                district: reg.district
+            },
+            create: {
+                name: reg.name,
+                isActive: true,
+                managerId: manager.id,
+                state: reg.state,
+                district: reg.district
+            },
         });
     }
 
