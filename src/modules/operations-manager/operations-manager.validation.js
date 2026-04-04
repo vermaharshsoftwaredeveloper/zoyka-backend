@@ -45,6 +45,11 @@ export const qcDecisionSchema = z.object({
   notes: z.string().trim().max(500).optional(),
 });
 
+export const dispatchOrderSchema = z.object({
+  notes: z.string().trim().max(500).optional(),
+  // trackingNumber here later
+});
+
 export const updateStockSchema = z.object({
   mode: z.enum(["SET", "INCREMENT"]).default("INCREMENT"),
   quantity: z.coerce.number().int().min(1),

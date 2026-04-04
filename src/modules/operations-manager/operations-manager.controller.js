@@ -10,6 +10,7 @@ import {
   qcDecisionSchema,
   updateOutletProductSchema,
   updateStockSchema,
+  dispatchOrderSchema,
 } from "./operations-manager.validation.js";
 import {
   createOutletProductService,
@@ -27,6 +28,7 @@ import {
   listReturnsPendingService,
   updateOutletProductService,
   updateProductStockService,
+  dispatchOrderService,
 } from "./operations-manager.service.js";
 
 const parseQuery = (schema, query) => {
@@ -248,5 +250,21 @@ export const deleteOutletProduct = asyncHandler(async (req, res) => {
     success: true,
     message: "Outlet product deleted successfully",
     data,
+  });
+});
+
+export const dispatchOrder = asyncHandler(async (req, res) => {
+  const payload = parseBody(dispatchOrderSchema, req.body || {}); 
+  
+  const data = await dispatchOrderService({ 
+    user: req.user, 
+    orderId: req.params.orderId, 
+    payload 
+  });
+
+  res.status(200).json({ 
+    success: true, 
+    message: "Order successfully dispatched and marked as SHIPPED", 
+    data 
   });
 });

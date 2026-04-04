@@ -567,3 +567,34 @@ export const deleteOutletProductService = async ({ user, outletId, productId }) 
     include: PRODUCT_INCLUDE,
   });
 };
+
+export const dispatchOrderService = async ({ user, orderId, payload }) => {
+  const outletIds = await getManagedOutletIds({ userId: user.id, role: user.role });
+
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      product: { outletId: { in: outletIds } },
+      status: "PACKED",
+    },
+  });
+
+  if (!order) {
+    throw new ApiError(404, "Order not found or not ready for dispatch. Ensure it has passed QC (PACKED).");
+  }
+
+  const newNotes = payload.notes
+    ? `${order.notes ? order.notes + '\n' : ''}[DISPATCH UPDATE]: ${payload.notes}`
+    : order.notes;
+
+  const updatedOrder = await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      status: "SHIPPED",
+      notes: newNotes,
+    },
+    include: ORDER_INCLUDE,
+  });
+
+  return toOrderCard(updatedOrder);
+};

@@ -16,6 +16,7 @@ import {
   listReturnsPending,
   updateOutletProduct,
   updateProductStock,
+  dispatchOrder,
 } from "./operations-manager.controller.js";
 
 const router = Router();
@@ -32,7 +33,7 @@ router.get("/qc/pending", listQcPendingOrders);
 router.patch("/orders/:orderId/qc", decideQc);
 
 router.get("/dispatch", getDispatchQueues);
-
+router.patch("/orders/:orderId/dispatch", dispatchOrder);
 router.get("/returns", listReturnsPending);
 
 router.get("/inventory/low-stock", listLowStockProducts);
