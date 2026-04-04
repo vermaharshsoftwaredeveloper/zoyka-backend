@@ -222,11 +222,9 @@ export const createOutletProduct = asyncHandler(async (req, res) => {
 });
 
 export const updateOutletProduct = asyncHandler(async (req, res) => {
-  const query = parseQuery(listScopeQuerySchema.pick({ outletId: true }), req.query);
   const payload = parseBody(updateOutletProductSchema, req.body);
   const data = await updateOutletProductService({
     user: req.user,
-    outletId: query.outletId,
     productId: req.params.productId,
     payload,
   });
@@ -239,10 +237,8 @@ export const updateOutletProduct = asyncHandler(async (req, res) => {
 });
 
 export const deleteOutletProduct = asyncHandler(async (req, res) => {
-  const query = parseQuery(listScopeQuerySchema.pick({ outletId: true }), req.query);
   const data = await deleteOutletProductService({
     user: req.user,
-    outletId: query.outletId,
     productId: req.params.productId,
   });
 

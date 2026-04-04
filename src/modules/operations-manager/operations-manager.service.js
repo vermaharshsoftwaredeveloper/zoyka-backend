@@ -454,63 +454,63 @@ export const getOutletProductByIdService = async ({ user, outletId, productId })
 };
 
 export const createOutletProductService = async ({ user, payload }) => {
-  const outletIds = await getManagedOutletIds({ userId: user.id, role: user.role, outletId: payload.outletId });
+  // 1. Fetch ALL outlets this specific manager/artisan controls automatically
+  const availableOutletIds = await getManagedOutletIds({ userId: user.id, role: user.role });
 
-  if (!outletIds.includes(payload.outletId)) {
-    throw new ApiError(403, "Cannot create product for this outlet");
+  if (availableOutletIds.length === 0) {
+    throw new ApiError(403, "You do not have access to any outlets to create products.");
+  }
+  if (availableOutletIds.length > 1) {
+    throw new ApiError(400, "You manage multiple outlets. Please contact support for multi-outlet product creation.");
   }
 
-  await ensureCategoryExists(payload.categoryId);
+  // 2. Safely grab their single assigned outlet
+  const targetOutletId = availableOutletIds[0];
 
   try {
-    return await prisma.product.create({
-      data: {
-        outletId: payload.outletId,
-        artisanId: payload.artisanId,
-        categoryId: payload.categoryId,
-        title: payload.title,
-        slug: payload.slug,
-        description: payload.description,
-        specialFeatures: payload.specialFeatures,
-        material: payload.material,
-        actualPrice: payload.actualPrice,
-        sellingPrice: payload.sellingPrice,
-        stock: payload.stock,
-        isActive: payload.isActive,
-        images: {
-          create: (payload.images || []).map((url, index) => ({
-            url,
-            sortOrder: index,
-          })),
+    return await prisma.$transaction(async (tx) => {
+      return await tx.product.create({
+        data: {
+          outletId: targetOutletId, // 🔥 Smart Auto-Assignment!
+          artisanId: payload.artisanId,
+          categoryId: payload.categoryId,
+          title: payload.title,
+          slug: payload.slug,
+          description: payload.description,
+          specialFeatures: payload.specialFeatures,
+          material: payload.material,
+          actualPrice: payload.actualPrice,
+          sellingPrice: payload.sellingPrice,
+          stock: payload.stock,
+          isActive: payload.isActive,
+          ...(payload.images && payload.images.length > 0
+            ? {
+                images: {
+                  create: payload.images.map((url, index) => ({ url, sortOrder: index })),
+                },
+              }
+            : {}),
         },
-      },
-      include: PRODUCT_INCLUDE,
+        include: PRODUCT_INCLUDE,
+      });
     });
   } catch (error) {
-    if (error?.code === "P2002") {
-      throw new ApiError(409, "Product slug already exists for this outlet");
-    }
-
+    if (error?.code === "P2002") throw new ApiError(409, "Product slug already exists");
     throw error;
   }
 };
 
-export const updateOutletProductService = async ({ user, outletId, productId, payload }) => {
-  const outletIds = await getManagedOutletIds({ userId: user.id, role: user.role, outletId });
-  const existing = await getScopedProductOrThrow({ productId, outletIds });
+export const updateOutletProductService = async ({ user, productId, payload }) => {
+  const availableOutletIds = await getManagedOutletIds({ userId: user.id, role: user.role });
 
-  if (payload.outletId) {
-    const scopedOutletIds = await getManagedOutletIds({ userId: user.id, role: user.role, outletId: payload.outletId });
-    if (!scopedOutletIds.includes(payload.outletId)) {
-      throw new ApiError(403, "Cannot move product to this outlet");
-    }
+  if (availableOutletIds.length === 0) {
+    throw new ApiError(403, "You do not have access to any outlets.");
   }
 
-  if (payload.categoryId) {
-    await ensureCategoryExists(payload.categoryId);
-  }
+  // 🔥 Automatically searches across ALL outlets this manager owns!
+  const existing = await getScopedProductOrThrow({ productId, outletIds: availableOutletIds });
 
-  const hasImages = Object.prototype.hasOwnProperty.call(payload, "images");
+  const hasImages = payload.images && payload.images.length > 0;
 
   try {
     return await prisma.$transaction(async (tx) => {
@@ -521,41 +521,40 @@ export const updateOutletProductService = async ({ user, outletId, productId, pa
       return tx.product.update({
         where: { id: existing.id },
         data: {
-          outletId: payload.outletId,
+          // Notice we DO NOT update outletId here. It stays safely in its original outlet.
           categoryId: payload.categoryId,
+          artisanId: payload.artisanId,
           title: payload.title,
           slug: payload.slug,
           description: payload.description,
+          specialFeatures: payload.specialFeatures,
+          material: payload.material,
           actualPrice: payload.actualPrice,
           sellingPrice: payload.sellingPrice,
           stock: payload.stock,
           isActive: payload.isActive,
           ...(hasImages
             ? {
-              images: {
-                create: (payload.images || []).map((url, index) => ({
-                  url,
-                  sortOrder: index,
-                })),
-              },
-            }
+                images: {
+                  create: payload.images.map((url, index) => ({ url, sortOrder: index })),
+                },
+              }
             : {}),
         },
         include: PRODUCT_INCLUDE,
       });
     });
   } catch (error) {
-    if (error?.code === "P2002") {
-      throw new ApiError(409, "Product slug already exists for this outlet");
-    }
-
+    if (error?.code === "P2002") throw new ApiError(409, "Product slug already exists");
     throw error;
   }
 };
 
-export const deleteOutletProductService = async ({ user, outletId, productId }) => {
-  const outletIds = await getManagedOutletIds({ userId: user.id, role: user.role, outletId });
-  const existing = await getScopedProductOrThrow({ productId, outletIds });
+export const deleteOutletProductService = async ({ user, productId }) => {
+  const availableOutletIds = await getManagedOutletIds({ userId: user.id, role: user.role });
+  
+  // 🔥 Automatically authorizes the delete request
+  const existing = await getScopedProductOrThrow({ productId, outletIds: availableOutletIds });
 
   return prisma.product.update({
     where: { id: existing.id },

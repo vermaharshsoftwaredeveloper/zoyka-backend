@@ -58,7 +58,7 @@ export const updateStockSchema = z.object({
 const imageUrlsSchema = z.array(z.string().trim().url()).max(10);
 
 export const createOutletProductSchema = z.object({
-  outletId: uuidSchema.optional(),
+  // outletId: uuidSchema.optional(),
   artisanId: uuidSchema,
   categoryId: uuidSchema,
   
@@ -83,7 +83,7 @@ export const createOutletProductSchema = z.object({
 });
 
 export const updateOutletProductSchema = z.object({
-  outletId: uuidSchema.optional(),
+  // outletId: uuidSchema.optional(),
   artisanId: uuidSchema.optional(),
   categoryId: uuidSchema.optional(),
 
