@@ -38,7 +38,7 @@ export const requireRoles = (...roles) => {
   };
 };
 
-export const requireAdmin = requireRoles("ADMIN", "SUPER_ADMIN");
+export const requireAdmin = requireRoles("ADMIN");
 export const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {

@@ -27,8 +27,7 @@ app.get("/api-docs.json", (req, res) => {
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
-app.use(verifyHandshakeKey);
-app.use("/api", routes);
+app.use("/api", verifyHandshakeKey, routes);
 
 app.use(errorHandler);
 

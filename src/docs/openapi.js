@@ -986,7 +986,7 @@ const openApiSpec = {
                   type: "object",
                   properties: {
                     message: { type: "string", example: "Login successful" },
-                    role: { type: "string", example: "SUPER_ADMIN" },
+                    role: { type: "string", example: "ADMIN" },
                     accessToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
                     refreshToken: { type: "string", example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
                   },

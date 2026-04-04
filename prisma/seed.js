@@ -12,7 +12,8 @@ const main = async () => {
     const hashedPassword = await hashPassword("Password@123");
 
     const baseUsers = [
-        { email: "admin@zoyka.com", mobile: "9000000001", name: "Super Admin", role: "SUPER_ADMIN" },
+        { email: "admin@zoyka.com", mobile: "9000000001", name: "Super Admin", role: "ADMIN" },
+        // { email: "superadmin@zoyka.com", mobile: "9000000888", name: "Super Admin", role: "SUPER_ADMIN" },
         { email: "manager@zoyka.com", mobile: "9000000002", name: "Ops Manager", role: "MANAGER" },
         { email: "customer@zoyka.com", mobile: "9000000003", name: "Rahul Customer", role: "USER" },
         { email: "owner_north@zoyka.com", mobile: "9100000010", name: "Ramesh Singh", role: "PRODUCER" },

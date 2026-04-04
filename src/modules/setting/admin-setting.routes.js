@@ -10,7 +10,7 @@ import { requireAuth, authorizeRoles } from "../../middleware/auth.middleware.js
 
 const router = Router();
 
-router.use(requireAuth, authorizeRoles("SUPER_ADMIN", "ADMIN"));
+router.use(requireAuth, authorizeRoles("ADMIN"));
 
 router.get("/", getAllSettings);
 router.post("/", createSetting);

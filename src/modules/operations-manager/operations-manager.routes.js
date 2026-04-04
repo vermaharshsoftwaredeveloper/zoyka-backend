@@ -19,7 +19,7 @@ import {
 
 const router = Router();
 
-router.use(requireAuth, authorizeRoles("ADMIN", "SUPER_ADMIN", "MANAGER"));
+router.use(requireAuth, authorizeRoles("ADMIN", "MANAGER"));
 
 router.get("/dashboard", getOpsDashboard);
 

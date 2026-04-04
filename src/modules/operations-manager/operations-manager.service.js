@@ -76,7 +76,7 @@ const ensureCategoryExists = async (categoryId) => {
 };
 
 const getManagedOutletIds = async ({ userId, role, outletId }) => {
-  if (role === "ADMIN" || role === "SUPER_ADMIN") {
+  if (role === "ADMIN") {
     if (outletId) {
       const outlet = await prisma.outlet.findUnique({ where: { id: outletId }, select: { id: true } });
 
