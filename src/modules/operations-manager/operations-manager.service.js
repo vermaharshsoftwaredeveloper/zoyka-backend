@@ -210,6 +210,39 @@ export const listNewOrdersService = async ({ user, outletId, page, limit }) => {
   return { data, page, limit, total };
 };
 
+export const listFilteredOrdersService = async ({ user, outletId, status, page, limit }) => {
+  const outletIds = await getManagedOutletIds({ userId: user.id, role: user.role, outletId });
+
+  const skip = (page - 1) * limit;
+
+  // Build the dynamic where clause
+  const where = {
+    product: { outletId: { in: outletIds } },
+    ...(status ? { status } : {}),
+  };
+
+  const [total, orders] = await Promise.all([
+    prisma.order.count({ where }),
+    prisma.order.findMany({
+      where,
+      include: ORDER_INCLUDE,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+  ]);
+
+  return {
+    data: orders.map(toOrderCard),
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
 export const decideOrderService = async ({ user, outletId, orderId, decision, reason }) => {
   const outletIds = await getManagedOutletIds({ userId: user.id, role: user.role, outletId });
   const existing = await getScopedOrderOrThrow({ orderId, outletIds });

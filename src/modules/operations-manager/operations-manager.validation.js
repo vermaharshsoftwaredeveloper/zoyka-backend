@@ -2,6 +2,21 @@ import { z } from "zod";
 
 const uuidSchema = z.string().uuid("Invalid UUID");
 
+export const filteredOrdersQuerySchema = z.object({
+  outletId: uuidSchema.optional(),
+  status: z.enum([
+    "PLACED", 
+    "CONFIRMED", 
+    "PACKED", 
+    "SHIPPED", 
+    "OUT_FOR_DELIVERY", 
+    "DELIVERED", 
+    "CANCELLED"
+  ]).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 export const listScopeQuerySchema = z.object({
   outletId: uuidSchema.optional(),
   page: z.coerce.number().int().min(1).default(1),

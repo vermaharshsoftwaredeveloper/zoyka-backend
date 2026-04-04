@@ -9,6 +9,7 @@ import {
   getOpsDashboard,
   getOutletProductById,
   listLowStockProducts,
+  listFilteredOrders,
   listNewOrders,
   listOutletProducts,
   listQcPendingOrders,
@@ -23,6 +24,7 @@ router.use(requireAuth, authorizeRoles("ADMIN", "MANAGER"));
 
 router.get("/dashboard", getOpsDashboard);
 
+router.get("/orders/filter", listFilteredOrders);
 router.get("/orders/new", listNewOrders);
 router.patch("/orders/:orderId/decision", decideOrder);
 

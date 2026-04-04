@@ -2710,6 +2710,57 @@ const openApiSpec = {
         }
       }
     },
+    "/api/ops/orders/filter": {
+      get: {
+        tags: ["Operations Manager"],
+        summary: "Get paginated orders with an optional dynamic status filter",
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
+        parameters: [
+          {
+            name: "status",
+            in: "query",
+            required: false,
+            schema: { 
+              type: "string", 
+              enum: [
+                "PLACED", 
+                "CONFIRMED", 
+                "PACKED", 
+                "SHIPPED", 
+                "OUT_FOR_DELIVERY", 
+                "DELIVERED", 
+                "CANCELLED"
+              ] 
+            },
+            description: "Filter orders by their current status. If omitted, returns all orders."
+          },
+          {
+            name: "outletId",
+            in: "query",
+            required: false,
+            schema: { type: "string", format: "uuid" },
+            description: "Filter orders for a specific outlet."
+          },
+          {
+            name: "page",
+            in: "query",
+            required: false,
+            schema: { type: "integer", default: 1 }
+          },
+          {
+            name: "limit",
+            in: "query",
+            required: false,
+            schema: { type: "integer", default: 20 }
+          }
+        ],
+        responses: {
+          200: {
+            description: "Filtered orders fetched successfully"
+          }
+        }
+      }
+    },
     "/api/ops/orders/new": {
       get: {
         tags: ["Operations Manager"],

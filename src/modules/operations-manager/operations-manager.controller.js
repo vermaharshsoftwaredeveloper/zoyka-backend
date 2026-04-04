@@ -6,6 +6,7 @@ import {
   listLowStockQuerySchema,
   listScopeQuerySchema,
   orderDecisionSchema,
+  filteredOrdersQuerySchema,
   qcDecisionSchema,
   updateOutletProductSchema,
   updateStockSchema,
@@ -19,6 +20,7 @@ import {
   getOpsDashboardService,
   getOutletProductByIdService,
   listLowStockProductsService,
+  listFilteredOrdersService,
   listNewOrdersService,
   listOutletProductsService,
   listQcPendingOrdersService,
@@ -68,6 +70,17 @@ export const listNewOrders = asyncHandler(async (req, res) => {
     success: true,
     message: "New orders fetched successfully",
     ...response,
+  });
+});
+
+export const listFilteredOrders = asyncHandler(async (req, res) => {
+  const query = parseQuery(filteredOrdersQuerySchema, req.query);
+  const data = await listFilteredOrdersService({ user: req.user, ...query });
+
+  res.status(200).json({ 
+    success: true, 
+    message: "Filtered orders fetched successfully", 
+    ...data 
   });
 });
 
