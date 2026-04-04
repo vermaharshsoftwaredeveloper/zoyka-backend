@@ -59,7 +59,7 @@ export const getCartService = async (userId) => {
   });
 
   const subtotal = cart.items.reduce((sum, item) => {
-    return sum + item.quantity * item.product.price;
+    return sum + item.quantity * item.product.actualPrice;
   }, 0);
 
   return {

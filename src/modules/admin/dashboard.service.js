@@ -105,7 +105,7 @@ export const getDashboardAggregations = async (period) => {
     const topProductIds = topProductGroup.map(tp => tp.productId);
     const productsList = await prisma.product.findMany({
         where: { id: { in: topProductIds } },
-        select: { id: true, title: true, price: true, stock: true }
+        select: { id: true, title: true, actualPrice: true, sellingPrice: true, stock: true }
     });
 
     const topProducts = topProductGroup.map(tp => {
@@ -113,7 +113,7 @@ export const getDashboardAggregations = async (period) => {
         return {
             id: productDetail?.id,
             title: productDetail?.title,
-            price: productDetail?.price,
+            price: productDetail?.actualPrice,
             stock: productDetail?.stock,
             totalSold: tp._sum.quantity
         };

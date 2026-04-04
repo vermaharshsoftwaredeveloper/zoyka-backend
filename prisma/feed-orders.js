@@ -63,8 +63,9 @@ const main = async () => {
                 productId: product.id,
                 status: statuses[i], // Rotate statuses
                 quantity: quantity,
-                unitPrice: product.price,
-                totalAmount: product.price * quantity,
+                unitPrice: product.actualPrice,
+                unitSellingPrice: product.sellingPrice,
+                totalAmount: product.actualPrice * quantity,
                 notes: `Auto-generated test order from script`,
             },
         });

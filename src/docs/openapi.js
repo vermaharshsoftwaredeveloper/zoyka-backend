@@ -81,9 +81,9 @@ const openApiSpec = {
         required: ["name", "email", "mobile", "password"],
         properties: {
           name: { type: "string", example: "Ravi Kumar" },
-          email: { type: "string", format: "email", example: "ravi@example.com" },
+          email: { type: "string", format: "email", example: "admin@zoyka.com" },
           mobile: { type: "string", example: "9876543210" },
-          password: { type: "string", example: "Pass@1234" },
+          password: { type: "string", example: "Password@123" },
         },
       },
       CreateStaffRequest: {
@@ -101,7 +101,7 @@ const openApiSpec = {
         type: "object",
         required: ["email", "otp"],
         properties: {
-          email: { type: "string", format: "email", example: "ravi@example.com" },
+          email: { type: "string", format: "email", example: "admin@zoyka.com" },
           otp: { type: "string", example: "123456" },
         },
       },
@@ -109,15 +109,15 @@ const openApiSpec = {
         type: "object",
         required: ["email", "password"],
         properties: {
-          email: { type: "string", format: "email", example: "ravi@example.com" },
-          password: { type: "string", example: "Pass@1234" },
+          email: { type: "string", format: "email", example: "admin@zoyka.com" },
+          password: { type: "string", example: "Password@123" },
         },
       },
       ResendOtpRequest: {
         type: "object",
         required: ["email", "purpose"],
         properties: {
-          email: { type: "string", format: "email", example: "ravi@example.com" },
+          email: { type: "string", format: "email", example: "admin@zoyka.com" },
           purpose: { type: "string", enum: ["SIGNUP", "LOGIN"], example: "LOGIN" },
         },
       },
@@ -215,7 +215,7 @@ const openApiSpec = {
         required: ["name", "email", "phone", "message"],
         properties: {
           name: { type: "string", example: "Ravi Kumar" },
-          email: { type: "string", format: "email", example: "ravi@example.com" },
+          email: { type: "string", format: "email", example: "admin@zoyka.com" },
           phone: { type: "string", example: "9876543210" },
           message: { type: "string", example: "Need help with product authenticity information." },
         },
@@ -248,7 +248,7 @@ const openApiSpec = {
         properties: {
           id: { type: "string", format: "uuid" },
           name: { type: "string", example: "Ravi Kumar" },
-          email: { type: "string", format: "email", example: "ravi@example.com" },
+          email: { type: "string", format: "email", example: "admin@zoyka.com" },
           mobile: { type: "string", example: "9876543210" },
           avatar: { type: "string", format: "uri", nullable: true },
           role: { type: "string", example: "USER" },
