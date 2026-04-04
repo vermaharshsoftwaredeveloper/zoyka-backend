@@ -2720,17 +2720,17 @@ const openApiSpec = {
             name: "status",
             in: "query",
             required: false,
-            schema: { 
-              type: "string", 
+            schema: {
+              type: "string",
               enum: [
-                "PLACED", 
-                "CONFIRMED", 
-                "PACKED", 
-                "SHIPPED", 
-                "OUT_FOR_DELIVERY", 
-                "DELIVERED", 
+                "PLACED",
+                "CONFIRMED",
+                "PACKED",
+                "SHIPPED",
+                "OUT_FOR_DELIVERY",
+                "DELIVERED",
                 "CANCELLED"
-              ] 
+              ]
             },
             description: "Filter orders by their current status. If omitted, returns all orders."
           },
@@ -2940,18 +2940,44 @@ const openApiSpec = {
       },
       post: {
         tags: ["Operations Manager"],
-        summary: "Create a product for a managed outlet",
+        summary: "Create a new product (Artisan-centric)",
         security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         requestBody: {
           required: true,
           content: {
             "application/json": {
-              schema: { $ref: "#/components/schemas/AdminCreateProductRequest" }
+              schema: {
+                type: "object",
+                required: ["artisanId", "categoryId", "title", "slug", "price"], // 🔥 artisanId is now mandatory!
+                properties: {
+                  artisanId: { type: "string", format: "uuid", description: "Mandatory: ID of the Artisan who created this product" },
+                  categoryId: { type: "string", format: "uuid", description: "Mandatory: Category ID" },
+                  title: { type: "string", example: "Hand-Painted Wooden Elephant" },
+                  slug: { type: "string", example: "hand-painted-wooden-elephant" },
+                  price: { type: "number", example: 850 },
+
+                  outletId: { type: "string", format: "uuid", description: "Optional: ID of the Outlet (Storefront)" },
+                  description: { type: "string", example: "Beautifully carved showpiece." },
+                  specialFeatures: { type: "string", example: "Made from sustainably sourced teak wood and painted with natural dyes." }, // 🔥 NEW
+                  material: { type: "string", example: "Teak Wood" }, // 🔥 NEW
+                  producerName: { type: "string", example: "Ramesh Singh" },
+                  producerStory: { type: "string", example: "Crafting wooden artifacts for 20 years in the heart of Rajasthan." },
+                  district: { type: "string", example: "Jaipur" },
+                  stock: { type: "integer", default: 0 },
+                  isActive: { type: "boolean", default: true },
+                  images: {
+                    type: "array",
+                    items: { type: "string", format: "uri" },
+                    example: ["https://images.unsplash.com/photo-1610992015732-2449b76344bc"]
+                  }
+                }
+              }
             }
           }
         },
         responses: {
-          201: { description: "Outlet product created successfully" }
+          201: { description: "Outlet product created successfully" },
+          409: { description: "Product slug already exists" }
         }
       }
     },
@@ -2970,17 +2996,35 @@ const openApiSpec = {
       },
       patch: {
         tags: ["Operations Manager"],
-        summary: "Update a product in managed outlets",
+        summary: "Update an existing product",
         security: [{ bearerAuth: [], ApiKeyAuth: [] }],
         parameters: [
-          { name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } },
-          { name: "outletId", in: "query", schema: { type: "string", format: "uuid" } }
+          { name: "productId", in: "path", required: true, schema: { type: "string", format: "uuid" } }
         ],
         requestBody: {
           required: true,
           content: {
             "application/json": {
-              schema: { $ref: "#/components/schemas/AdminUpdateProductRequest" }
+              schema: {
+                type: "object",
+                properties: {
+                  artisanId: { type: "string", format: "uuid" },
+                  categoryId: { type: "string", format: "uuid" },
+                  title: { type: "string" },
+                  slug: { type: "string" },
+                  price: { type: "number" },
+                  outletId: { type: "string", format: "uuid" },
+                  description: { type: "string" },
+                  specialFeatures: { type: "string" }, // 🔥 NEW
+                  material: { type: "string" },        // 🔥 NEW
+                  producerName: { type: "string" },
+                  producerStory: { type: "string" },
+                  district: { type: "string" },
+                  stock: { type: "integer" },
+                  isActive: { type: "boolean" },
+                  images: { type: "array", items: { type: "string", format: "uri" } }
+                }
+              }
             }
           }
         },

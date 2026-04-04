@@ -44,6 +44,22 @@ const ORDER_STATUS = {
   RETURN_PENDING: "CANCELLED",
 };
 
+const toOrderCard = (order) => {
+  return {
+    id: order.id,
+    status: order.status,
+    quantity: order.quantity,
+    unitPrice: order.unitPrice,
+    totalAmount: order.totalAmount,
+    notes: order.notes,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    user: order.user,
+    product: order.product,
+    address: order.address,
+  };
+};
+
 const getTodayBounds = () => {
   const now = new Date();
   const start = new Date(now);
@@ -450,10 +466,13 @@ export const createOutletProductService = async ({ user, payload }) => {
     return await prisma.product.create({
       data: {
         outletId: payload.outletId,
+        artisanId: payload.artisanId,
         categoryId: payload.categoryId,
         title: payload.title,
         slug: payload.slug,
         description: payload.description,
+        specialFeatures: payload.specialFeatures,
+        material: payload.material,
         producerName: payload.producerName,
         producerStory: payload.producerStory,
         district: payload.district,
@@ -517,13 +536,13 @@ export const updateOutletProductService = async ({ user, outletId, productId, pa
           isActive: payload.isActive,
           ...(hasImages
             ? {
-                images: {
-                  create: (payload.images || []).map((url, index) => ({
-                    url,
-                    sortOrder: index,
-                  })),
-                },
-              }
+              images: {
+                create: (payload.images || []).map((url, index) => ({
+                  url,
+                  sortOrder: index,
+                })),
+              },
+            }
             : {}),
         },
         include: PRODUCT_INCLUDE,

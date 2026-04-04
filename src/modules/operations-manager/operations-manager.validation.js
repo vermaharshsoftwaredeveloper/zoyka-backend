@@ -53,8 +53,10 @@ export const updateStockSchema = z.object({
 const imageUrlsSchema = z.array(z.string().trim().url()).max(10);
 
 export const createOutletProductSchema = z.object({
-  outletId: uuidSchema,
+  outletId: uuidSchema.optional(),
+  artisanId: uuidSchema,
   categoryId: uuidSchema,
+  
   title: z.string().trim().min(2).max(160),
   slug: z
     .string()
@@ -63,17 +65,41 @@ export const createOutletProductSchema = z.object({
     .max(180)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug must be lowercase kebab-case"),
   description: z.string().trim().max(4000).optional(),
+
+  specialFeatures: z.string().trim().max(2000).optional(),
+  material: z.string().trim().max(255).optional(),
+  
   producerName: z.string().trim().max(160).optional(),
   producerStory: z.string().trim().max(4000).optional(),
-  district: z.string().trim().min(2).max(100),
-  price: z.coerce.number().positive(),
-  stock: z.coerce.number().int().min(0).default(0),
+
+  district: z.string().trim().max(255).optional(),
+  price: z.coerce.number().min(0),
+  stock: z.coerce.number().int().min(0).optional().default(0),
+
   images: imageUrlsSchema.default([]),
   isActive: z.boolean().default(true),
 });
 
-export const updateOutletProductSchema = createOutletProductSchema
-  .partial()
-  .refine((payload) => Object.keys(payload).length > 0, {
-    message: "At least one field is required",
-  });
+export const updateOutletProductSchema = z.object({
+  outletId: uuidSchema.optional(),
+  artisanId: uuidSchema.optional(),
+  categoryId: uuidSchema.optional(),
+  title: z.string().trim().min(2).max(160).optional(),
+  slug: z.string().trim().min(2).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  description: z.string().trim().max(4000).optional(),
+  specialFeatures: z.string().trim().max(2000).optional(),
+  material: z.string().trim().max(255).optional(),
+  producerName: z.string().trim().max(160).optional(),
+  producerStory: z.string().trim().max(2000).optional(),
+  district: z.string().trim().max(255).optional(),
+  price: z.coerce.number().min(0).optional(),
+  stock: z.coerce.number().int().min(0).optional(),
+  isActive: z.boolean().optional(),
+  images: imageUrlsSchema.optional(),
+});
+
+// export const updateOutletProductSchema = createOutletProductSchema
+//   .partial()
+//   .refine((payload) => Object.keys(payload).length > 0, {
+//     message: "At least one field is required",
+//   });
