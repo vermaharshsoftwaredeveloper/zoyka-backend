@@ -3015,8 +3015,8 @@ const openApiSpec = {
                   price: { type: "number" },
                   outletId: { type: "string", format: "uuid" },
                   description: { type: "string" },
-                  specialFeatures: { type: "string" }, // 🔥 NEW
-                  material: { type: "string" },        // 🔥 NEW
+                  specialFeatures: { type: "string" },
+                  material: { type: "string" },
                   producerName: { type: "string" },
                   producerStory: { type: "string" },
                   district: { type: "string" },

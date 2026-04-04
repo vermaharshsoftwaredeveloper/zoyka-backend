@@ -1,4 +1,3 @@
-// prisma/seed.js
 import prisma from "../src/config/prisma.js";
 import { hashPassword } from "../src/modules/auth/utils/password.utils.js";
 
@@ -13,7 +12,6 @@ const main = async () => {
 
     const baseUsers = [
         { email: "admin@zoyka.com", mobile: "9000000001", name: "Super Admin", role: "ADMIN" },
-        // { email: "superadmin@zoyka.com", mobile: "9000000888", name: "Super Admin", role: "SUPER_ADMIN" },
         { email: "manager@zoyka.com", mobile: "9000000002", name: "Ops Manager", role: "MANAGER" },
         { email: "customer@zoyka.com", mobile: "9000000003", name: "Rahul Customer", role: "USER" },
         { email: "owner_north@zoyka.com", mobile: "9100000010", name: "Ramesh Singh", role: "PRODUCER" },
@@ -37,9 +35,9 @@ const main = async () => {
     // ==========================================
     console.log("⏳ Seeding Departments...");
     const departmentsData = [
-        { name: "Artisan's Touch", slug: "artisans-touch", description: "Handcrafted artisan products" },
-        { name: "Farmer Hub", slug: "farmer-hub", description: "Direct from farm organic produce" },
-        { name: "Indian Flavours", slug: "indian-flavours", description: "Authentic local flavors and preserves" }
+        { name: "Kaarigar", slug: "kaarigar", description: "Handcrafted artisan products" },
+        { name: "Kisan Setu", slug: "kisan-setu", description: "Direct from farm organic produce" },
+        { name: "Zoyka Kitchens", slug: "zoyka-kitchens", description: "Authentic local flavors and preserves" }
     ];
 
     const dbDepartments = {};
@@ -56,28 +54,19 @@ const main = async () => {
     // ==========================================
     console.log("⏳ Seeding Categories...");
     const categoriesData = [
-        // Artisan's Touch Categories
-        { name: "Wooden Utilities", slug: "wooden-utilities", depSlug: "artisans-touch", desc: "Hand-carved wooden items" },
-        { name: "Handlooms & Fabrics", slug: "handlooms", depSlug: "artisans-touch", desc: "Authentic regional weaves" },
-        { name: "Planters & Pottery", slug: "planters-pottery", depSlug: "artisans-touch", desc: "Clay and ceramic pots" },
-
-        // Farmer Hub Categories
-        { name: "Organic Staples", slug: "organic-staples", depSlug: "farmer-hub", desc: "Rice, wheat, and pulses" },
-        { name: "Spices", slug: "spices", depSlug: "farmer-hub", desc: "Whole and powdered authentic spices" },
-        { name: "Cold Pressed Oils", slug: "cold-pressed-oils", depSlug: "farmer-hub", desc: "Pure wood-pressed oils" },
-
-        // Indian Flavours Categories
-        { name: "Pickles & Blends", slug: "pickles-blends", depSlug: "indian-flavours", desc: "Traditional homemade pickles" },
-        { name: "Ready to Eat Snacks", slug: "ready-to-eat", depSlug: "indian-flavours", desc: "Fresh regional snacks" }
+        { name: "Wooden Utilities", slug: "wooden-utilities", depSlug: "kaarigar", desc: "Hand-carved wooden items" },
+        { name: "Handlooms & Fabrics", slug: "handlooms", depSlug: "kaarigar", desc: "Authentic regional weaves" },
+        { name: "Planters & Pottery", slug: "planters-pottery", depSlug: "kaarigar", desc: "Clay and ceramic pots" },
+        { name: "Organic Staples", slug: "organic-staples", depSlug: "kisan-setu", desc: "Rice, wheat, and pulses" },
+        { name: "Spices", slug: "spices", depSlug: "kisan-setu", desc: "Whole and powdered authentic spices" },
+        { name: "Cold Pressed Oils", slug: "cold-pressed-oils", depSlug: "kisan-setu", desc: "Pure wood-pressed oils" },
+        { name: "Pickles & Blends", slug: "pickles-blends", depSlug: "zoyka-kitchens", desc: "Traditional homemade pickles" },
+        { name: "Ready to Eat Snacks", slug: "ready-to-eat", depSlug: "zoyka-kitchens", desc: "Fresh regional snacks" }
     ];
 
     const dbCategories = {};
     for (const cat of categoriesData) {
-        // 🔥 Safety check added here to prevent "Cannot read properties of undefined"
-        if (!dbDepartments[cat.depSlug]) {
-            throw new Error(`CRITICAL ERROR: Department with slug '${cat.depSlug}' does not exist! Check your department seeding data.`);
-        }
-
+        if (!dbDepartments[cat.depSlug]) throw new Error(`CRITICAL ERROR: Missing department '${cat.depSlug}'`);
         const departmentId = dbDepartments[cat.depSlug].id;
         dbCategories[cat.slug] = await prisma.category.upsert({
             where: { name: cat.name },
@@ -92,7 +81,6 @@ const main = async () => {
     console.log("⏳ Seeding Regions...");
     const regionsData = ["North India", "South India", "West India"];
     const dbRegions = {};
-
     for (const regionName of regionsData) {
         dbRegions[regionName] = await prisma.region.upsert({
             where: { name: regionName },
@@ -102,27 +90,23 @@ const main = async () => {
     }
 
     // ==========================================
-    // 5. OUTLETS (8 Outlets linked to DEPARTMENTS)
+    // 5. OUTLETS 
     // ==========================================
     console.log("⏳ Seeding Outlets...");
     const outletsData = [
-        { key: "OUT-N-ART", name: "Delhi Craft House", dep: "artisans-touch", reg: "North India", ownerEmail: "owner_north@zoyka.com" },
-        { key: "OUT-N-FARM", name: "Punjab Golden Farms", dep: "farmer-hub", reg: "North India", ownerEmail: "owner_north@zoyka.com" },
-        { key: "OUT-N-FLAV", name: "Chandni Chowk Flavours", dep: "indian-flavours", reg: "North India", ownerEmail: "owner_north@zoyka.com" },
-        { key: "OUT-S-ART", name: "Mysore Heritage Woods", dep: "artisans-touch", reg: "South India", ownerEmail: "owner_south@zoyka.com" },
-        { key: "OUT-S-FARM", name: "Kerala Organics", dep: "farmer-hub", reg: "South India", ownerEmail: "owner_south@zoyka.com" },
-        { key: "OUT-S-FLAV", name: "Malabar Kitchen Co", dep: "indian-flavours", reg: "South India", ownerEmail: "owner_south@zoyka.com" },
-        { key: "OUT-W-ART", name: "Gujarat Craft Village", dep: "artisans-touch", reg: "West India", ownerEmail: "owner_west@zoyka.com" },
-        { key: "OUT-W-FARM", name: "Maha Agro Producers", dep: "farmer-hub", reg: "West India", ownerEmail: "owner_west@zoyka.com" }
+        { key: "OUT-N-ART", name: "Delhi Craft House", dep: "kaarigar", reg: "North India", ownerEmail: "owner_north@zoyka.com" },
+        { key: "OUT-N-FARM", name: "Punjab Golden Farms", dep: "kisan-setu", reg: "North India", ownerEmail: "owner_north@zoyka.com" },
+        { key: "OUT-N-FLAV", name: "Chandni Chowk Flavours", dep: "zoyka-kitchens", reg: "North India", ownerEmail: "owner_north@zoyka.com" },
+        { key: "OUT-S-ART", name: "Mysore Heritage Woods", dep: "kaarigar", reg: "South India", ownerEmail: "owner_south@zoyka.com" },
+        { key: "OUT-S-FARM", name: "Kerala Organics", dep: "kisan-setu", reg: "South India", ownerEmail: "owner_south@zoyka.com" },
+        { key: "OUT-S-FLAV", name: "Malabar Kitchen Co", dep: "zoyka-kitchens", reg: "South India", ownerEmail: "owner_south@zoyka.com" },
+        { key: "OUT-W-ART", name: "Gujarat Craft Village", dep: "kaarigar", reg: "West India", ownerEmail: "owner_west@zoyka.com" },
+        { key: "OUT-W-FARM", name: "Maha Agro Producers", dep: "kisan-setu", reg: "West India", ownerEmail: "owner_west@zoyka.com" }
     ];
 
     const dbOutlets = {};
     for (const out of outletsData) {
         const owner = await prisma.user.findUnique({ where: { email: out.ownerEmail } });
-
-        // 🔥 Safety Check
-        if (!dbDepartments[out.dep]) throw new Error(`CRITICAL ERROR: Outlet references missing department '${out.dep}'`);
-
         const departmentId = dbDepartments[out.dep].id;
         const regionId = dbRegions[out.reg].id;
 
@@ -138,55 +122,65 @@ const main = async () => {
     }
 
     // ==========================================
-    // 6. PRODUCTS (Linked to Specific Categories)
+    // 6. PRODUCTS (Now using actualPrice, sellingPrice, and artisanId)
     // ==========================================
     console.log("⏳ Seeding Products & Images...");
     const productsData = [
-        { out: "OUT-N-ART", cat: "wooden-utilities", title: "Hand-Painted Wooden Elephant", slug: "n-wooden-elephant", price: 850, stock: 20, rating: 4.9, count: 320, district: "Jaipur", img: "https://images.unsplash.com/photo-1610992015732-2449b76344bc" },
-        { out: "OUT-N-ART", cat: "handlooms", title: "Handwoven Pashmina Shawl", slug: "n-pashmina-shawl", price: 2500, stock: 15, rating: 4.7, count: 45, district: "Kashmir", img: "https://images.unsplash.com/photo-1584916201218-f4242ceb4809" },
-        { out: "OUT-N-ART", cat: "planters-pottery", title: "Blue Pottery Vase", slug: "n-blue-pottery", price: 600, stock: 30, rating: 4.5, count: 20, district: "Jaipur", img: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d" },
+        { out: "OUT-N-ART", artisanEmail: "owner_north@zoyka.com", cat: "wooden-utilities", title: "Hand-Painted Wooden Elephant", slug: "n-wooden-elephant", actualPrice: 1200, sellingPrice: 850, specialFeatures: "Hand-painted using natural vegetable dyes.", material: "Kadam Wood", stock: 20, rating: 4.9, count: 320, img: "https://images.unsplash.com/photo-1610992015732-2449b76344bc" },
+        { out: "OUT-N-ART", artisanEmail: "owner_north@zoyka.com", cat: "handlooms", title: "Handwoven Pashmina Shawl", slug: "n-pashmina-shawl", actualPrice: 3500, sellingPrice: 2500, specialFeatures: "100% pure Himalayan Pashmina thread.", material: "Pashmina Wool", stock: 15, rating: 4.7, count: 45, img: "https://images.unsplash.com/photo-1584916201218-f4242ceb4809" },
+        { out: "OUT-N-ART", artisanEmail: "owner_north@zoyka.com", cat: "planters-pottery", title: "Blue Pottery Vase", slug: "n-blue-pottery", actualPrice: 800, sellingPrice: 600, specialFeatures: "Authentic Jaipur Blue Pottery technique.", material: "Quartz and Glass", stock: 30, rating: 4.5, count: 20, img: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d" },
 
-        { out: "OUT-N-FARM", cat: "organic-staples", title: "Premium Basmati Rice (5kg)", slug: "n-basmati-rice", price: 650, stock: 100, rating: 4.8, count: 410, district: "Amritsar", img: "https://images.unsplash.com/photo-1586201375761-83865001e8ac" },
-        { out: "OUT-N-FARM", cat: "organic-staples", title: "Raw Forest Honey", slug: "n-forest-honey", price: 400, stock: 50, rating: 4.6, count: 85, district: "Dehradun", img: "https://images.unsplash.com/photo-1587049352847-4d4b12736e51" },
+        { out: "OUT-N-FARM", artisanEmail: "owner_north@zoyka.com", cat: "organic-staples", title: "Premium Basmati Rice (5kg)", slug: "n-basmati-rice", actualPrice: 850, sellingPrice: 650, specialFeatures: "Aged for 2 years for perfect aroma.", material: "Organic Rice", stock: 100, rating: 4.8, count: 410, img: "https://images.unsplash.com/photo-1586201375761-83865001e8ac" },
+        { out: "OUT-N-FARM", artisanEmail: "owner_north@zoyka.com", cat: "organic-staples", title: "Raw Forest Honey", slug: "n-forest-honey", actualPrice: 550, sellingPrice: 400, specialFeatures: "Unprocessed, directly sourced from wild combs.", material: "Raw Honey", stock: 50, rating: 4.6, count: 85, img: "https://images.unsplash.com/photo-1587049352847-4d4b12736e51" },
 
-        { out: "OUT-N-FLAV", cat: "pickles-blends", title: "Authentic Mango Pickle", slug: "n-mango-pickle", price: 180, stock: 80, rating: 4.9, count: 500, district: "Delhi", img: "https://images.unsplash.com/photo-1626082895617-2c6afed31b46" },
-        { out: "OUT-N-FLAV", cat: "spices", title: "Punjabi Chole Masala", slug: "n-chole-masala", price: 120, stock: 60, rating: 4.5, count: 35, district: "Ludhiana", img: "https://images.unsplash.com/photo-1596797038530-2c107229654b" },
+        { out: "OUT-N-FLAV", artisanEmail: "owner_north@zoyka.com", cat: "pickles-blends", title: "Authentic Mango Pickle", slug: "n-mango-pickle", actualPrice: 250, sellingPrice: 180, specialFeatures: "Sun-dried and preserved in cold-pressed mustard oil.", material: "Raw Mango, Spices", stock: 80, rating: 4.9, count: 500, img: "https://images.unsplash.com/photo-1626082895617-2c6afed31b46" },
 
-        { out: "OUT-S-ART", cat: "wooden-utilities", title: "Rosewood Chess Set", slug: "s-rosewood-chess", price: 1500, stock: 10, rating: 4.8, count: 215, district: "Mysore", img: "https://images.unsplash.com/photo-1528819622765-d6bcf132f793" },
-        { out: "OUT-S-ART", cat: "wooden-utilities", title: "Pure Sandalwood Soap", slug: "s-sandalwood-soap", price: 300, stock: 200, rating: 4.6, count: 120, district: "Mysore", img: "https://images.unsplash.com/photo-1600857062241-98e5dba7f214" },
+        { out: "OUT-S-ART", artisanEmail: "owner_south@zoyka.com", cat: "wooden-utilities", title: "Rosewood Chess Set", slug: "s-rosewood-chess", actualPrice: 2000, sellingPrice: 1500, specialFeatures: "Magnetic base with velvet lining.", material: "Indian Rosewood", stock: 10, rating: 4.8, count: 215, img: "https://images.unsplash.com/photo-1528819622765-d6bcf132f793" },
 
-        { out: "OUT-S-FARM", cat: "cold-pressed-oils", title: "Cold Pressed Coconut Oil", slug: "s-coconut-oil", price: 350, stock: 150, rating: 4.9, count: 600, district: "Kochi", img: "https://images.unsplash.com/photo-1620706857370-e1b9770e8bb1" },
-        { out: "OUT-S-FARM", cat: "organic-staples", title: "Organic Palm Jaggery", slug: "s-palm-jaggery", price: 150, stock: 75, rating: 4.7, count: 90, district: "Coimbatore", img: "https://images.unsplash.com/photo-1606300456184-7a35368a5c37" },
+        { out: "OUT-S-FARM", artisanEmail: "owner_south@zoyka.com", cat: "cold-pressed-oils", title: "Cold Pressed Coconut Oil", slug: "s-coconut-oil", actualPrice: 450, sellingPrice: 350, specialFeatures: "Wood-pressed at low temperatures to retain nutrients.", material: "Coconut", stock: 150, rating: 4.9, count: 600, img: "https://images.unsplash.com/photo-1620706857370-e1b9770e8bb1" },
 
-        { out: "OUT-S-FLAV", cat: "spices", title: "Whole Cardamom Pods", slug: "s-cardamom-pods", price: 800, stock: 40, rating: 4.8, count: 280, district: "Idukki", img: "https://images.unsplash.com/photo-1596593452033-6617a220268a" },
-        { out: "OUT-S-FLAV", cat: "spices", title: "Malabar Black Pepper", slug: "s-black-pepper", price: 450, stock: 90, rating: 4.6, count: 150, district: "Wayanad", img: "https://images.unsplash.com/photo-1596593452140-5e60803dd3dc" },
-        { out: "OUT-S-FLAV", cat: "ready-to-eat", title: "Spicy Banana Chips", slug: "s-banana-chips", price: 120, stock: 100, rating: 4.4, count: 65, district: "Trivandrum", img: "https://images.unsplash.com/photo-1600336214555-5c3140788775" },
+        { out: "OUT-S-FLAV", artisanEmail: "owner_south@zoyka.com", cat: "spices", title: "Whole Cardamom Pods", slug: "s-cardamom-pods", actualPrice: 1000, sellingPrice: 800, specialFeatures: "Hand-picked from the estates of Idukki.", material: "Spices", stock: 40, rating: 4.8, count: 280, img: "https://images.unsplash.com/photo-1596593452033-6617a220268a" },
 
-        { out: "OUT-W-ART", cat: "handlooms", title: "Kutch Embroidery Tote Bag", slug: "w-kutch-bag", price: 550, stock: 35, rating: 4.7, count: 110, district: "Bhuj", img: "https://images.unsplash.com/photo-1590874103328-eac38a683ce7" },
-        { out: "OUT-W-ART", cat: "handlooms", title: "Bandhani Silk Saree", slug: "w-bandhani-saree", price: 2800, stock: 12, rating: 4.9, count: 190, district: "Surat", img: "https://images.unsplash.com/photo-1610030469983-98e5dba7f214" },
+        { out: "OUT-W-ART", artisanEmail: "owner_west@zoyka.com", cat: "handlooms", title: "Bandhani Silk Saree", slug: "w-bandhani-saree", actualPrice: 3500, sellingPrice: 2800, specialFeatures: "Hand-tied and dyed using traditional techniques.", material: "Pure Silk", stock: 12, rating: 4.9, count: 190, img: "https://images.unsplash.com/photo-1610030469983-98e5dba7f214" },
 
-        { out: "OUT-W-FARM", cat: "organic-staples", title: "Devgad Alphonso Mangoes (1 Dozen)", slug: "w-alphonso-mango", price: 1200, stock: 50, rating: 4.9, count: 850, district: "Ratnagiri", img: "https://images.unsplash.com/photo-1553279768-865429fa0078" },
-        { out: "OUT-W-FARM", cat: "organic-staples", title: "Sharbati Wheat Flour (5kg)", slug: "w-wheat-flour", price: 300, stock: 80, rating: 4.5, count: 50, district: "Pune", img: "https://images.unsplash.com/photo-1509440159596-0249088772ff" },
+        { out: "OUT-W-FARM", artisanEmail: "owner_west@zoyka.com", cat: "organic-staples", title: "Devgad Alphonso Mangoes (1 Dozen)", slug: "w-alphonso-mango", actualPrice: 1500, sellingPrice: 1200, specialFeatures: "GI Tagged premium Alphonso mangoes.", material: "Fresh Fruit", stock: 50, rating: 4.9, count: 850, img: "https://images.unsplash.com/photo-1553279768-865429fa0078" },
     ];
 
     const dbProducts = {};
     for (const p of productsData) {
-
-        // 🔥 Safety Check
         if (!dbCategories[p.cat]) throw new Error(`CRITICAL ERROR: Product references missing category '${p.cat}'`);
 
         const outletId = dbOutlets[p.out].id;
         const categoryId = dbCategories[p.cat].id;
+        const artisan = await prisma.user.findUnique({ where: { email: p.artisanEmail } });
 
         dbProducts[p.slug] = await prisma.product.upsert({
             where: { outletId_slug: { outletId, slug: p.slug } },
-            update: { price: p.price, stock: p.stock, averageRating: p.rating, totalRatingsCount: p.count, categoryId },
+            update: {
+                actualPrice: p.actualPrice,
+                sellingPrice: p.sellingPrice,
+                stock: p.stock,
+                averageRating: p.rating,
+                totalRatingsCount: p.count,
+                categoryId,
+                artisanId: artisan.id, // 🔥 Enforcing the new mandatory relation
+                specialFeatures: p.specialFeatures,
+                material: p.material
+            },
             create: {
-                title: p.title, slug: p.slug, description: `Authentic ${p.title} sourced directly from local producers.`,
-                producerName: dbOutlets[p.out].name, producerStory: `Crafted with love and tradition in ${p.district}.`,
-                district: p.district, price: p.price, stock: p.stock,
-                averageRating: p.rating, totalRatingsCount: p.count,
-                outletId, categoryId,
+                title: p.title,
+                slug: p.slug,
+                description: `Authentic ${p.title} sourced directly from local producers.`,
+                specialFeatures: p.specialFeatures,
+                material: p.material,
+                actualPrice: p.actualPrice,
+                sellingPrice: p.sellingPrice,
+                stock: p.stock,
+                averageRating: p.rating,
+                totalRatingsCount: p.count,
+                outletId,
+                categoryId,
+                artisanId: artisan.id, // 🔥 Enforcing the new mandatory relation
                 images: { create: [{ url: p.img, sortOrder: 1 }] }
             },
         });
@@ -210,7 +204,9 @@ const main = async () => {
     const order = await prisma.order.create({
         data: {
             userId: customer.id, addressId: address.id, productId: sampleProduct.id,
-            status: "DELIVERED", quantity: 1, unitPrice: sampleProduct.price, totalAmount: sampleProduct.price,
+            status: "DELIVERED", quantity: 1,
+            unitPrice: sampleProduct.sellingPrice, // 🔥 Updated to sellingPrice
+            totalAmount: sampleProduct.sellingPrice, // 🔥 Updated to sellingPrice
             notes: "Please deliver safely."
         },
     });
@@ -287,7 +283,7 @@ const main = async () => {
     }
 
     console.log("\n✅ MASTER SEED COMPLETED SUCCESSFULLY! 🎉");
-    console.log(`Populated: 3 Departments, 8 Categories, 3 Regions, 8 Outlets, and 18 Products.`);
+    console.log(`Populated Database with Retail Pricing & Artisan Connections!`);
 };
 
 main()

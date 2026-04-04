@@ -158,17 +158,19 @@ model Product {
   description       String?
   specialFeatures   String?         @db.Text
   material          String?
-  producerName      String?
-  producerStory     String?
-  district          String
-  price             Float
+  actualPrice       Float
+  sellingPrice      Float
   stock             Int             @default(0)
+
   categoryId        String
   category          Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  
   outletId          String?
   outlet            Outlet?        @relation(fields: [outletId], references: [id], onDelete: SetNull)
+  
   artisanId         String?
   artisan           User?          @relation("ProductArtisan", fields: [artisanId], references: [id], onDelete: Restrict)
+  
   images            ProductImage[]
   reviews           Review[]
   wishlist          Wishlist[]
@@ -182,7 +184,6 @@ model Product {
 
   @@unique([outletId, slug])
   @@index([outletId])
-  @@index([district])
   @@index([isActive])
 }
 
