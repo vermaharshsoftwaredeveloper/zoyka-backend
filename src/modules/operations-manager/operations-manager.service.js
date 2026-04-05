@@ -579,3 +579,60 @@ export const dispatchOrderService = async ({ user, orderId, payload }) => {
 
   return toOrderCard(updatedOrder);
 };
+
+export const getDeliveryQueuesService = async ({ user, page, limit, type }) => {
+  const outletIds = await getManagedOutletIds({ userId: user.id, role: user.role });
+
+  const statusFilter = type === 'COMPLETED'
+    ? "DELIVERED"
+    : { in: ["SHIPPED", "OUT_FOR_DELIVERY"] };
+
+  const where = {
+    product: { outletId: { in: outletIds } },
+    status: statusFilter,
+  };
+
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      include: ORDER_INCLUDE,
+      orderBy: { updatedAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.order.count({ where }),
+  ]);
+
+  return { data: orders.map(toOrderCard), total, page, limit };
+};
+
+export const markOrderDeliveredService = async ({ user, orderId, payload }) => {
+  const outletIds = await getManagedOutletIds({ userId: user.id, role: user.role });
+
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      product: { outletId: { in: outletIds } },
+      status: { in: ["SHIPPED", "OUT_FOR_DELIVERY"] },
+    },
+  });
+
+  if (!order) {
+    throw new ApiError(404, "Order not found or not ready for delivery. Ensure it is SHIPPED.");
+  }
+
+  const newNotes = payload.notes
+    ? `${order.notes ? order.notes + '\\n' : ''}[DELIVERY UPDATE]: ${payload.notes}`
+    : order.notes;
+
+  const updatedOrder = await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      status: "DELIVERED",
+      notes: newNotes,
+    },
+    include: ORDER_INCLUDE,
+  });
+
+  return toOrderCard(updatedOrder);
+};

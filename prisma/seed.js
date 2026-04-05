@@ -46,7 +46,7 @@ const main = async () => {
     // ==========================================
     console.log("⏳ Seeding Departments...");
     const departmentsData = [
-        { name: "Artisan Hub", slug: "artisan-hub", description: "Handcrafted artisan products" },
+        { name: "Artisan's Touch", slug: "artisans-touch", description: "Handcrafted artisan products" },
         { name: "Farmer Hub", slug: "farmer-hub", description: "Direct from farm organic produce" },
         { name: "Indian Flavours", slug: "indian-flavours", description: "Authentic local flavors and preserves" }
     ];

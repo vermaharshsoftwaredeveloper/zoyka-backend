@@ -3368,6 +3368,79 @@ const openApiSpec = {
         responses: { 200: { description: "Outlet bestsellers fetched" } }
       }
     },
+    "/api/ops/deliveries": {
+      get: {
+        tags: ["Operations Manager"],
+        summary: "Get list of orders ready for delivery or already delivered",
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
+        parameters: [
+          { name: "type", in: "query", schema: { type: "string", enum: ["PENDING", "COMPLETED"], default: "PENDING" }, description: "PENDING fetches SHIPPED orders. COMPLETED fetches DELIVERED orders." },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20 } }
+        ],
+        responses: {
+          200: { description: "Delivery queues fetched successfully" }
+        }
+      }
+    },
+    "/api/ops/orders/{orderId}/deliver": {
+      patch: {
+        tags: ["Operations Manager"],
+        summary: "Mark an order as DELIVERED",
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
+        parameters: [
+          { name: "orderId", in: "path", required: true, schema: { type: "string", format: "uuid" } }
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  notes: { type: "string", example: "Package handed directly to the customer at the front door." }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: "Order marked as DELIVERED successfully" },
+          404: { description: "Order not found or not in SHIPPED status" }
+        }
+      }
+    },
+    "/api/ops/orders/{orderId}/dispatch": {
+      patch: {
+        tags: ["Operations Manager"],
+        summary: "Dispatch an order (Changes status from PACKED to SHIPPED)",
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
+        parameters: [
+          { name: "orderId", in: "path", required: true, schema: { type: "string", format: "uuid" } }
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  notes: {
+                    type: "string",
+                    example: "Handed over to delivery partner. Tracking ID: AW123456789"
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: "Order dispatched successfully" },
+          400: { description: "Invalid payload or parameters" },
+          404: { description: "Order not found or not in PACKED state" }
+        }
+      }
+    },
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

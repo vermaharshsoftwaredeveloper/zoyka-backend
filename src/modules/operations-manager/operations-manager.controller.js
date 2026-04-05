@@ -11,6 +11,7 @@ import {
   updateOutletProductSchema,
   updateStockSchema,
   dispatchOrderSchema,
+  markDeliveredSchema,
 } from "./operations-manager.validation.js";
 import {
   createOutletProductService,
@@ -29,6 +30,8 @@ import {
   updateOutletProductService,
   updateProductStockService,
   dispatchOrderService,
+  getDeliveryQueuesService,
+  markOrderDeliveredService,
 } from "./operations-manager.service.js";
 
 const parseQuery = (schema, query) => {
@@ -79,10 +82,10 @@ export const listFilteredOrders = asyncHandler(async (req, res) => {
   const query = parseQuery(filteredOrdersQuerySchema, req.query);
   const data = await listFilteredOrdersService({ user: req.user, ...query });
 
-  res.status(200).json({ 
-    success: true, 
-    message: "Filtered orders fetched successfully", 
-    ...data 
+  res.status(200).json({
+    success: true,
+    message: "Filtered orders fetched successfully",
+    ...data
   });
 });
 
@@ -250,17 +253,43 @@ export const deleteOutletProduct = asyncHandler(async (req, res) => {
 });
 
 export const dispatchOrder = asyncHandler(async (req, res) => {
-  const payload = parseBody(dispatchOrderSchema, req.body || {}); 
-  
-  const data = await dispatchOrderService({ 
-    user: req.user, 
-    orderId: req.params.orderId, 
-    payload 
+  const payload = parseBody(dispatchOrderSchema, req.body || {});
+
+  const data = await dispatchOrderService({
+    user: req.user,
+    orderId: req.params.orderId,
+    payload
   });
 
-  res.status(200).json({ 
-    success: true, 
-    message: "Order successfully dispatched and marked as SHIPPED", 
-    data 
+  res.status(200).json({
+    success: true,
+    message: "Order successfully dispatched and marked as SHIPPED",
+    data
+  });
+});
+
+export const getDeliveryQueues = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const type = req.query.type;
+
+  const data = await getDeliveryQueuesService({ user: req.user, page, limit, type });
+
+  res.status(200).json({ success: true, message: "Delivery queue fetched successfully", ...data });
+});
+
+export const markOrderDelivered = asyncHandler(async (req, res) => {
+  const payload = parseBody(markDeliveredSchema, req.body || {});
+
+  const data = await markOrderDeliveredService({
+    user: req.user,
+    orderId: req.params.orderId,
+    payload
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Order successfully marked as DELIVERED",
+    data
   });
 });

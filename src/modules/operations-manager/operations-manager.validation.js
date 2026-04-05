@@ -5,12 +5,12 @@ const uuidSchema = z.string().uuid("Invalid UUID");
 export const filteredOrdersQuerySchema = z.object({
   outletId: uuidSchema.optional(),
   status: z.enum([
-    "PLACED", 
-    "CONFIRMED", 
-    "PACKED", 
-    "SHIPPED", 
-    "OUT_FOR_DELIVERY", 
-    "DELIVERED", 
+    "PLACED",
+    "CONFIRMED",
+    "PACKED",
+    "SHIPPED",
+    "OUT_FOR_DELIVERY",
+    "DELIVERED",
     "CANCELLED"
   ]).optional(),
   page: z.coerce.number().int().min(1).default(1),
@@ -61,7 +61,7 @@ export const createOutletProductSchema = z.object({
   // outletId: uuidSchema.optional(),
   artisanId: uuidSchema,
   categoryId: uuidSchema,
-  
+
   title: z.string().trim().min(2).max(160),
   slug: z
     .string()
@@ -107,3 +107,7 @@ export const updateOutletProductSchema = z.object({
 //   .refine((payload) => Object.keys(payload).length > 0, {
 //     message: "At least one field is required",
 //   });
+
+export const markDeliveredSchema = z.object({
+  notes: z.string().trim().max(500).optional(),
+});
