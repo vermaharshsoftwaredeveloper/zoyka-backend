@@ -56,7 +56,6 @@ const getUserCartWithItems = async (userId) => {
             select: {
               id: true,
               title: true,
-              actualPrice: true, 
               sellingPrice: true,
               stock: true,
             },
@@ -92,25 +91,16 @@ export const checkoutCartService = async ({ userId, addressId, notes }) => {
           addressId,
           productId: item.productId,
           quantity: item.quantity,
-          unitPrice: item.product.actualPrice,
-          totalAmount: item.quantity * item.product.actualPrice,
+          unitPrice: item.product.sellingPrice,
+          totalAmount: item.quantity * item.product.sellingPrice,
           notes,
           status: "PLACED",
         },
         include: {
           product: {
             include: {
-              images: {
-                orderBy: { sortOrder: "asc" },
-                take: 1,
-              },
-              outlet: {
-                select: {
-                  id: true,
-                  key: true,
-                  name: true,
-                },
-              },
+              images: { orderBy: { sortOrder: "asc" }, take: 1 },
+              outlet: { select: { id: true, key: true, name: true } },
             },
           },
           address: true,
@@ -119,21 +109,13 @@ export const checkoutCartService = async ({ userId, addressId, notes }) => {
 
       await tx.product.update({
         where: { id: item.productId },
-        data: {
-          stock: {
-            decrement: item.quantity,
-          },
-        },
+        data: { stock: { decrement: item.quantity } },
       });
 
       orders.push(order);
     }
 
-    await tx.cartItem.deleteMany({
-      where: {
-        cartId: cart.id,
-      },
-    });
+    await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
 
     return orders;
   });

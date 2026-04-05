@@ -21,7 +21,8 @@ export const getAllOutletsAdminService = async (filters) => {
         orderBy: { createdAt: 'desc' },
         include: {
             region: { select: { name: true } },
-            owner: { select: { name: true, email: true, mobile: true } },
+            department: { select: { name: true } },
+            manager: { select: { name: true, email: true, mobile: true } },
             _count: { select: { products: true } }
         }
     });
@@ -29,57 +30,72 @@ export const getAllOutletsAdminService = async (filters) => {
 
 export const createOutletService = async (data) => {
     const existingOutlet = await prisma.outlet.findUnique({ where: { key: data.key } });
-    if (existingOutlet) throw new ApiError(400, "A Producer/Outlet with this key already exists");
+    if (existingOutlet) throw new ApiError(400, "An Outlet with this key already exists");
 
-    await verifyProducerRole(data.ownerId);
+    await verifyManagerRole(data.managerId);
 
-    return await prisma.outlet.create({
-        data,
-        include: { region: true, owner: { select: { name: true, email: true } } }
-    });
+    try {
+        return await prisma.outlet.create({ data });
+    } catch (error) {
+        if (error?.code === "P2002") {
+            if (error.meta?.target?.includes('managerId')) {
+                throw new ApiError(409, "This Operations Manager is already assigned to another outlet!");
+            }
+            throw new ApiError(409, "Outlet key already exists");
+        }
+        throw error;
+    }
 };
 
 export const updateOutletService = async (id, data) => {
     const outlet = await prisma.outlet.findUnique({ where: { id } });
-    if (!outlet) throw new ApiError(404, "Producer/Outlet not found");
+    if (!outlet) throw new ApiError(404, "Outlet not found");
 
     if (data.key && data.key !== outlet.key) {
-        const keyExists = await prisma.outlet.findUnique({ where: { key: data.key } });
-        if (keyExists) throw new ApiError(400, "Another Producer with this key already exists");
+        const existingOutlet = await prisma.outlet.findUnique({ where: { key: data.key } });
+        if (existingOutlet) throw new ApiError(400, "An Outlet with this key already exists");
     }
 
-    if (data.ownerId !== undefined && data.ownerId !== outlet.ownerId) {
-        await verifyProducerRole(data.ownerId);
-    }
+    await verifyManagerRole(data.managerId);
 
-    return await prisma.outlet.update({
-        where: { id },
-        data,
-        include: { region: true, owner: { select: { name: true, email: true } } }
-    });
+    try {
+        return await prisma.outlet.update({
+            where: { id },
+            data
+        });
+    } catch (error) {
+        if (error?.code === "P2002") {
+            if (error.meta?.target?.includes('managerId')) {
+                throw new ApiError(409, "This Operations Manager is already assigned to another outlet!");
+            }
+            throw new ApiError(409, "Outlet key already exists");
+        }
+        throw error;
+    }
 };
 
 export const toggleOutletStatusService = async (id) => {
     const outlet = await prisma.outlet.findUnique({ where: { id } });
-    if (!outlet) throw new ApiError(404, "Producer/Outlet not found");
+    if (!outlet) throw new ApiError(404, "Outlet not found");
 
     return await prisma.outlet.update({
         where: { id },
-        data: { isActive: !outlet.isActive },
+        data: { isActive: !outlet.isActive }
     });
 };
 
-export const getOutletByIdAdminService = async (id) => {
+export const getOutletByIdService = async (id) => {
     const outlet = await prisma.outlet.findUnique({
         where: { id },
         include: {
-            region: { select: { id: true, name: true } },
-            owner: { select: { id: true, name: true, email: true, mobile: true, role: true } },
-            products: { where: { isActive: true }, select: { id: true } }
+            region: true,
+            department: true,
+            manager: { select: { name: true, email: true, mobile: true } },
+            _count: { select: { products: true } }
         }
     });
 
-    if (!outlet) throw new ApiError(404, "Producer not found");
+    if (!outlet) throw new ApiError(404, "Outlet not found");
 
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
@@ -109,20 +125,20 @@ export const getOutletByIdAdminService = async (id) => {
         isActive: outlet.isActive,
         monthlyCapacity: outlet.monthlyCapacity,
         region: outlet.region,
+        department: outlet.department,
 
         contactInfo: {
-            producerName: outlet.owner?.name || "Unassigned",
-            mobile: outlet.owner?.mobile || "N/A",
-            email: outlet.owner?.email || "N/A",
+            managerName: outlet.manager?.name || "Unassigned",
+            mobile: outlet.manager?.mobile || "N/A",
+            email: outlet.manager?.email || "N/A",
             address: outlet.address || "N/A"
         },
 
         stats: {
             rating: ratingStats._avg.rating ? Number(ratingStats._avg.rating.toFixed(1)) : 0,
-            activeSKUs: outlet.products.length,
-            qualityScore: outlet.qualityScore || 0,
-            thisMonthEarnings: orderStats._sum.totalAmount || 0,
-            thisMonthOrdersCompleted: orderStats._count.id || 0
+            activeSKUs: outlet._count?.products || 0,
+            monthlyRevenue: orderStats._sum.totalAmount || 0,
+            ordersThisMonth: orderStats._count.id || 0
         }
     };
 };

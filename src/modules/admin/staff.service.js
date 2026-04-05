@@ -14,14 +14,11 @@ export const getOperationalManagersService = async () => {
             role: true,
             isEmailVerified: true,
             createdAt: true,
-            managedRegions: {
+            managedOutlet: {
                 select: {
                     id: true,
                     name: true,
                     isActive: true,
-                    _count: {
-                        select: { outlets: true }
-                    }
                 }
             }
         },

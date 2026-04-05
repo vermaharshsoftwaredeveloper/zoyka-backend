@@ -40,16 +40,8 @@ export const getCartService = async (userId) => {
         include: {
           product: {
             include: {
-              outlet: {
-                select: {
-                  id: true,
-                  key: true,
-                  name: true,
-                },
-              },
-              images: {
-                orderBy: { sortOrder: "asc" },
-              },
+              outlet: { select: { id: true, key: true, name: true } },
+              images: { orderBy: { sortOrder: "asc" } },
             },
           },
         },
@@ -59,7 +51,7 @@ export const getCartService = async (userId) => {
   });
 
   const subtotal = cart.items.reduce((sum, item) => {
-    return sum + item.quantity * item.product.actualPrice;
+    return sum + item.quantity * item.product.sellingPrice;
   }, 0);
 
   return {

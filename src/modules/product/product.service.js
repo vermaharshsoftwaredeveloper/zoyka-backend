@@ -3,10 +3,7 @@ import ApiError from "../../utils/api-error/index.js";
 
 const getRatingSummary = (reviews) => {
   if (!reviews.length) {
-    return {
-      averageRating: 0,
-      totalRatingsCount: 0,
-    };
+    return { averageRating: 0, totalRatingsCount: 0 };
   }
 
   const totalRatingsCount = reviews.length;
@@ -31,10 +28,9 @@ const toProductCard = (product) => {
     title: product.title,
     slug: product.slug,
     description: product.description,
-    producerName: product.producerName,
-    producerStory: product.producerStory,
-    district: product.district,
-    price: product.actualPrice,
+    specialFeatures: product.specialFeatures,
+    material: product.material,
+    actualPrice: product.actualPrice,
     sellingPrice: product.sellingPrice,
     stock: product.stock,
     category: product.category,
@@ -49,41 +45,29 @@ const getProductCardInclude = () => ({
 });
 
 const getRankedProductsByIds = async (productIds) => {
-  if (!productIds.length) {
-    return [];
-  }
+  if (!productIds.length) return [];
 
   const products = await prisma.product.findMany({
-    where: {
-      id: { in: productIds },
-      isActive: true,
-    },
+    where: { id: { in: productIds }, isActive: true },
     include: getProductCardInclude(),
   });
 
   const productMap = new Map(products.map((product) => [product.id, product]));
-
   return productIds.map((id) => productMap.get(id)).filter(Boolean);
 };
 
-export const listProductsService = async ({ categorySlug, district, search, page, limit }) => {
-  const where = {
-    isActive: true,
-  };
+export const listProductsService = async ({ categorySlug, search, page, limit }) => {
+  const where = { isActive: true };
 
   if (categorySlug) {
     where.category = { slug: categorySlug, isActive: true };
-  }
-
-  if (district) {
-    where.district = { contains: district, mode: "insensitive" };
   }
 
   if (search) {
     where.OR = [
       { title: { contains: search, mode: "insensitive" } },
       { description: { contains: search, mode: "insensitive" } },
-      { producerName: { contains: search, mode: "insensitive" } },
+      { specialFeatures: { contains: search, mode: "insensitive" } }
     ];
   }
 
@@ -122,25 +106,15 @@ export const getProductByIdService = async (productId) => {
           rating: true,
           comment: true,
           createdAt: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          images: {
-            orderBy: { sortOrder: "asc" },
-            select: { id: true, url: true },
-          },
+          user: { select: { id: true, name: true } },
+          images: { orderBy: { sortOrder: "asc" }, select: { id: true, url: true } },
         },
         orderBy: { createdAt: "desc" },
       },
     },
   });
 
-  if (!product || !product.isActive) {
-    return null;
-  }
+  if (!product || !product.isActive) return null;
 
   const ratingSummary = getRatingSummary(product.reviews);
 
@@ -149,10 +123,9 @@ export const getProductByIdService = async (productId) => {
     title: product.title,
     slug: product.slug,
     description: product.description,
-    producerName: product.producerName,
-    producerStory: product.producerStory,
-    district: product.district,
-    price: product.actualPrice,
+    specialFeatures: product.specialFeatures,
+    material: product.material,
+    actualPrice: product.actualPrice,
     sellingPrice: product.sellingPrice,
     stock: product.stock,
     category: product.category,
@@ -164,41 +137,26 @@ export const getProductByIdService = async (productId) => {
 
 export const getCategoryBestsellersService = async ({ categorySlug, limit }) => {
   const category = await prisma.category.findFirst({
-    where: {
-      slug: categorySlug,
-      isActive: true,
-    },
+    where: { slug: categorySlug, isActive: true },
     select: { id: true },
   });
 
-  if (!category) {
-    throw new ApiError(404, "Category not found");
-  }
+  if (!category) throw new ApiError(404, "Category not found");
 
   const categoryProducts = await prisma.product.findMany({
-    where: {
-      categoryId: category.id,
-      isActive: true,
-    },
+    where: { categoryId: category.id, isActive: true },
     select: { id: true },
   });
 
-  if (!categoryProducts.length) {
-    return [];
-  }
+  if (!categoryProducts.length) return [];
 
   const productIds = categoryProducts.map((product) => product.id);
 
   const groupedSales = await prisma.order.groupBy({
     by: ["productId"],
-    where: {
-      productId: { in: productIds },
-      status: { not: "CANCELLED" },
-    },
+    where: { productId: { in: productIds }, status: { not: "CANCELLED" } },
     _sum: { quantity: true },
-    orderBy: {
-      _sum: { quantity: "desc" },
-    },
+    orderBy: { _sum: { quantity: "desc" } },
     take: limit,
   });
 
@@ -210,15 +168,12 @@ export const getCategoryBestsellersService = async ({ categorySlug, limit }) => 
       where: {
         categoryId: category.id,
         isActive: true,
-        id: {
-          notIn: rankedIds,
-        },
+        id: { notIn: rankedIds },
       },
       orderBy: [{ totalRatingsCount: "desc" }, { createdAt: "desc" }],
       take: limit - rankedProducts.length,
       include: getProductCardInclude(),
     });
-
     rankedProducts.push(...fallbackProducts);
   }
 
@@ -230,25 +185,21 @@ export const getCategoryBestsellersService = async ({ categorySlug, limit }) => 
   }));
 };
 
+// 🔥 Removed District scoring entirely
 const buildPreferenceMap = (items, weight) => {
   const outletMap = new Map();
-  const districtMap = new Map();
   const excludedProducts = new Set();
 
   for (const item of items) {
     const product = item.product;
-
-    if (!product) {
-      continue;
-    }
-
+    if (!product) continue;
     excludedProducts.add(product.id);
-
-    outletMap.set(product.outletId, (outletMap.get(product.outletId) || 0) + weight);
-    districtMap.set(product.district, (districtMap.get(product.district) || 0) + weight);
+    if (product.outletId) {
+      outletMap.set(product.outletId, (outletMap.get(product.outletId) || 0) + weight);
+    }
   }
 
-  return { outletMap, districtMap, excludedProducts };
+  return { outletMap, excludedProducts };
 };
 
 const mergeScoreMap = (target, source) => {
@@ -258,57 +209,15 @@ const mergeScoreMap = (target, source) => {
 };
 
 export const getTopPicksForUserService = async ({ userId, limit }) => {
+  // 🔥 Removed 'district' from all selects
   const [orders, wishlist, cart, reviews] = await Promise.all([
-    prisma.order.findMany({
-      where: { userId },
-      select: {
-        product: {
-          select: {
-            id: true,
-            outletId: true,
-            district: true,
-          },
-        },
-      },
-    }),
-    prisma.wishlist.findMany({
-      where: { userId },
-      select: {
-        product: {
-          select: {
-            id: true,
-            outletId: true,
-            district: true,
-          },
-        },
-      },
-    }),
-    prisma.cart.findUnique({
-      where: { userId },
-        include: {
-          items: {
-            include: {
-              product: true,
-            },
-          },
-        },  
-    }),
-    prisma.review.findMany({
-      where: { userId },
-      select: {
-        product: {
-          select: {
-            id: true,
-            outletId: true,
-            district: true,
-          },
-        },
-      },
-    }),
+    prisma.order.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
+    prisma.wishlist.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
+    prisma.cart.findUnique({ where: { userId }, select: { items: { select: { product: { select: { id: true, outletId: true } } } } } }),
+    prisma.review.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
   ]);
 
   const outletScore = new Map();
-  const districtScore = new Map();
   const excludedProducts = new Set();
 
   const sources = [
@@ -320,8 +229,6 @@ export const getTopPicksForUserService = async ({ userId, limit }) => {
 
   for (const source of sources) {
     mergeScoreMap(outletScore, source.outletMap);
-    mergeScoreMap(districtScore, source.districtMap);
-
     for (const productId of source.excludedProducts) {
       excludedProducts.add(productId);
     }
@@ -332,26 +239,12 @@ export const getTopPicksForUserService = async ({ userId, limit }) => {
     .slice(0, 5)
     .map(([outletId]) => outletId);
 
-  const preferredDistricts = Array.from(districtScore.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([district]) => district);
-
   const candidates = await prisma.product.findMany({
     where: {
       isActive: true,
       stock: { gt: 0 },
-      id: {
-        notIn: Array.from(excludedProducts),
-      },
-      ...(preferredOutletIds.length || preferredDistricts.length
-        ? {
-          OR: [
-            ...(preferredOutletIds.length ? [{ outletId: { in: preferredOutletIds } }] : []),
-            ...(preferredDistricts.length ? [{ district: { in: preferredDistricts } }] : []),
-          ],
-        }
-        : {}),
+      id: { notIn: Array.from(excludedProducts) },
+      ...(preferredOutletIds.length ? { outletId: { in: preferredOutletIds } } : {}),
     },
     include: getProductCardInclude(),
     take: limit * 4,
@@ -360,13 +253,9 @@ export const getTopPicksForUserService = async ({ userId, limit }) => {
 
   const scoredCandidates = candidates.map((product) => {
     const outletPreference = outletScore.get(product.outletId) || 0;
-    const districtPreference = districtScore.get(product.district) || 0;
     const popularityScore = (product.averageRating || 0) * 2 + Math.log10((product.totalRatingsCount || 0) + 1);
 
-    return {
-      product,
-      score: outletPreference * 1.5 + districtPreference * 1.2 + popularityScore,
-    };
+    return { product, score: outletPreference * 1.5 + popularityScore };
   });
 
   scoredCandidates.sort((a, b) => b.score - a.score);
@@ -378,15 +267,12 @@ export const getTopPicksForUserService = async ({ userId, limit }) => {
       where: {
         isActive: true,
         stock: { gt: 0 },
-        id: {
-          notIn: [...Array.from(excludedProducts), ...picks.map((item) => item.id)],
-        },
+        id: { notIn: [...Array.from(excludedProducts), ...picks.map((item) => item.id)] },
       },
       include: getProductCardInclude(),
       orderBy: [{ totalRatingsCount: "desc" }, { createdAt: "desc" }],
       take: limit - picks.length,
     });
-
     picks = [...picks, ...fallbackProducts.map((item) => toProductCard(item))];
   }
 
@@ -440,7 +326,7 @@ export const getSimilarProductsService = async (productId, limit = 6) => {
         id: true,
         categoryId: true,
         outletId: true,
-        district: true,
+        // district: true,
       },
     });
 

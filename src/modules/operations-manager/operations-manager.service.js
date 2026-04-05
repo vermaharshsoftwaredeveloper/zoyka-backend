@@ -91,40 +91,26 @@ const ensureCategoryExists = async (categoryId) => {
   }
 };
 
-const getManagedOutletIds = async ({ userId, role, outletId }) => {
-  if (role === "ADMIN") {
-    if (outletId) {
-      const outlet = await prisma.outlet.findUnique({ where: { id: outletId }, select: { id: true } });
-
-      if (!outlet) {
-        throw new ApiError(404, "Outlet not found");
-      }
-
-      return [outletId];
-    }
-
+export const getManagedOutletIds = async ({ userId, role }) => {
+  if (role === "ADMIN" || role === "SUPER_ADMIN") {
     const outlets = await prisma.outlet.findMany({ select: { id: true } });
-    return outlets.map((outlet) => outlet.id);
+    return outlets.map((o) => o.id);
   }
 
-  const managedOutlets = await prisma.outlet.findMany({
-    where: {
-      OR: [{ region: { managerId: userId } }, { ownerId: userId }],
-    },
-    select: { id: true },
+  if (role === "MANAGER") {
+    const outlet = await prisma.outlet.findUnique({
+      where: { managerId: userId },
+      select: { id: true }
+    });
+    return outlet ? [outlet.id] : [];
+  }
+
+  const ownedOutlets = await prisma.outlet.findMany({
+    where: { ownerId: userId },
+    select: { id: true }
   });
 
-  const managedOutletIds = managedOutlets.map((outlet) => outlet.id);
-
-  if (!managedOutletIds.length) {
-    throw new ApiError(403, "No managed outlets assigned to this manager");
-  }
-
-  if (outletId && !managedOutletIds.includes(outletId)) {
-    throw new ApiError(403, "Outlet is outside your management scope");
-  }
-
-  return outletId ? [outletId] : managedOutletIds;
+  return ownedOutlets.map((o) => o.id);
 };
 
 const buildOutletOrderWhere = (outletIds, extra = {}) => ({
@@ -485,10 +471,10 @@ export const createOutletProductService = async ({ user, payload }) => {
           isActive: payload.isActive,
           ...(payload.images && payload.images.length > 0
             ? {
-                images: {
-                  create: payload.images.map((url, index) => ({ url, sortOrder: index })),
-                },
-              }
+              images: {
+                create: payload.images.map((url, index) => ({ url, sortOrder: index })),
+              },
+            }
             : {}),
         },
         include: PRODUCT_INCLUDE,
@@ -535,10 +521,10 @@ export const updateOutletProductService = async ({ user, productId, payload }) =
           isActive: payload.isActive,
           ...(hasImages
             ? {
-                images: {
-                  create: payload.images.map((url, index) => ({ url, sortOrder: index })),
-                },
-              }
+              images: {
+                create: payload.images.map((url, index) => ({ url, sortOrder: index })),
+              },
+            }
             : {}),
         },
         include: PRODUCT_INCLUDE,
@@ -552,7 +538,7 @@ export const updateOutletProductService = async ({ user, productId, payload }) =
 
 export const deleteOutletProductService = async ({ user, productId }) => {
   const availableOutletIds = await getManagedOutletIds({ userId: user.id, role: user.role });
-  
+
   // 🔥 Automatically authorizes the delete request
   const existing = await getScopedProductOrThrow({ productId, outletIds: availableOutletIds });
 
