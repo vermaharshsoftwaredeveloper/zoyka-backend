@@ -1,3 +1,4 @@
+// prisma/seed.js
 import prisma from "../src/config/prisma.js";
 import { hashPassword } from "../src/modules/auth/utils/password.utils.js";
 
@@ -12,8 +13,19 @@ const main = async () => {
 
     const baseUsers = [
         { email: "admin@zoyka.com", mobile: "9000000001", name: "Super Admin", role: "ADMIN" },
-        { email: "manager@zoyka.com", mobile: "9000000002", name: "Ops Manager", role: "MANAGER" },
         { email: "customer@zoyka.com", mobile: "9000000003", name: "Rahul Customer", role: "USER" },
+
+        // 🔥 ENHANCED: Created 8 distinct Ops Managers for our 1-to-1 Outlet Relationship!
+        { email: "manager_n_art@zoyka.com", mobile: "9200000001", name: "Ops Manager 1", role: "MANAGER" },
+        { email: "manager_n_farm@zoyka.com", mobile: "9200000002", name: "Ops Manager 2", role: "MANAGER" },
+        { email: "manager_n_flav@zoyka.com", mobile: "9200000003", name: "Ops Manager 3", role: "MANAGER" },
+        { email: "manager_s_art@zoyka.com", mobile: "9200000004", name: "Ops Manager 4", role: "MANAGER" },
+        { email: "manager_s_farm@zoyka.com", mobile: "9200000005", name: "Ops Manager 5", role: "MANAGER" },
+        { email: "manager_s_flav@zoyka.com", mobile: "9200000006", name: "Ops Manager 6", role: "MANAGER" },
+        { email: "manager_w_art@zoyka.com", mobile: "9200000007", name: "Ops Manager 7", role: "MANAGER" },
+        { email: "manager_w_farm@zoyka.com", mobile: "9200000008", name: "Ops Manager 8", role: "MANAGER" },
+
+        // Artisans
         { email: "artisan_north@zoyka.com", mobile: "9100000010", name: "Ramesh Singh", role: "ARTISAN" },
         { email: "artisan_south@zoyka.com", mobile: "9100000020", name: "Karthik Nair", role: "ARTISAN" },
         { email: "artisan_west@zoyka.com", mobile: "9100000030", name: "Amit Patel", role: "ARTISAN" }
@@ -21,23 +33,22 @@ const main = async () => {
 
     const dbUsers = {};
     for (const u of baseUsers) {
-        dbUsers[u.role] = await prisma.user.upsert({
+        dbUsers[u.email] = await prisma.user.upsert({
             where: { email: u.email },
             update: { password: hashedPassword, name: u.name, mobile: u.mobile, role: u.role },
             create: { ...u, password: hashedPassword, isEmailVerified: true },
         });
     }
-    const customer = dbUsers["USER"];
-    const manager = dbUsers["MANAGER"];
+    const customer = dbUsers["customer@zoyka.com"];
 
     // ==========================================
-    // 2. DEPARTMENTS (Top-Level Domains)
+    // 2. DEPARTMENTS (Updated Names!)
     // ==========================================
     console.log("⏳ Seeding Departments...");
     const departmentsData = [
-        { name: "Kaarigar", slug: "kaarigar", description: "Handcrafted artisan products" },
-        { name: "Kisan Setu", slug: "kisan-setu", description: "Direct from farm organic produce" },
-        { name: "Zoyka Kitchens", slug: "zoyka-kitchens", description: "Authentic local flavors and preserves" }
+        { name: "Artisan Hub", slug: "artisan-hub", description: "Handcrafted artisan products" },
+        { name: "Farmer Hub", slug: "farmer-hub", description: "Direct from farm organic produce" },
+        { name: "Indian Flavours", slug: "indian-flavours", description: "Authentic local flavors and preserves" }
     ];
 
     const dbDepartments = {};
@@ -54,14 +65,14 @@ const main = async () => {
     // ==========================================
     console.log("⏳ Seeding Categories...");
     const categoriesData = [
-        { name: "Wooden Utilities", slug: "wooden-utilities", depSlug: "kaarigar", desc: "Hand-carved wooden items" },
-        { name: "Handlooms & Fabrics", slug: "handlooms", depSlug: "kaarigar", desc: "Authentic regional weaves" },
-        { name: "Planters & Pottery", slug: "planters-pottery", depSlug: "kaarigar", desc: "Clay and ceramic pots" },
-        { name: "Organic Staples", slug: "organic-staples", depSlug: "kisan-setu", desc: "Rice, wheat, and pulses" },
-        { name: "Spices", slug: "spices", depSlug: "kisan-setu", desc: "Whole and powdered authentic spices" },
-        { name: "Cold Pressed Oils", slug: "cold-pressed-oils", depSlug: "kisan-setu", desc: "Pure wood-pressed oils" },
-        { name: "Pickles & Blends", slug: "pickles-blends", depSlug: "zoyka-kitchens", desc: "Traditional homemade pickles" },
-        { name: "Ready to Eat Snacks", slug: "ready-to-eat", depSlug: "zoyka-kitchens", desc: "Fresh regional snacks" }
+        { name: "Wooden Utilities", slug: "wooden-utilities", depSlug: "artisan-hub", desc: "Hand-carved wooden items" },
+        { name: "Handlooms & Fabrics", slug: "handlooms", depSlug: "artisan-hub", desc: "Authentic regional weaves" },
+        { name: "Planters & Pottery", slug: "planters-pottery", depSlug: "artisan-hub", desc: "Clay and ceramic pots" },
+        { name: "Organic Staples", slug: "organic-staples", depSlug: "farmer-hub", desc: "Rice, wheat, and pulses" },
+        { name: "Spices", slug: "spices", depSlug: "farmer-hub", desc: "Whole and powdered authentic spices" },
+        { name: "Cold Pressed Oils", slug: "cold-pressed-oils", depSlug: "farmer-hub", desc: "Pure wood-pressed oils" },
+        { name: "Pickles & Blends", slug: "pickles-blends", depSlug: "indian-flavours", desc: "Traditional homemade pickles" },
+        { name: "Ready to Eat Snacks", slug: "ready-to-eat", depSlug: "indian-flavours", desc: "Fresh regional snacks" }
     ];
 
     const dbCategories = {};
@@ -89,37 +100,38 @@ const main = async () => {
     for (const reg of regionsData) {
         dbRegions[reg.name] = await prisma.region.upsert({
             where: { name: reg.name },
-            update: { state: reg.state, district: reg.district }, // Manager ID removed from Region
+            update: { state: reg.state, district: reg.district },
             create: { name: reg.name, isActive: true, state: reg.state, district: reg.district },
         });
     }
 
     // ==========================================
-    // 5. OUTLETS 
+    // 5. OUTLETS (With 1-to-1 Manager Assignment)
     // ==========================================
     console.log("⏳ Seeding Outlets...");
     const outletsData = [
-        { key: "OUT-N-ART", name: "Delhi Craft House", dep: "kaarigar", reg: "North India", ownerEmail: "artisan_north@zoyka.com" },
-        { key: "OUT-N-FARM", name: "Punjab Golden Farms", dep: "kisan-setu", reg: "North India", ownerEmail: "artisan_north@zoyka.com" },
-        { key: "OUT-N-FLAV", name: "Chandni Chowk Flavours", dep: "zoyka-kitchens", reg: "North India", ownerEmail: "artisan_north@zoyka.com" },
-        { key: "OUT-S-ART", name: "Mysore Heritage Woods", dep: "kaarigar", reg: "South India", ownerEmail: "artisan_south@zoyka.com" },
-        { key: "OUT-S-FARM", name: "Kerala Organics", dep: "kisan-setu", reg: "South India", ownerEmail: "artisan_south@zoyka.com" },
-        { key: "OUT-S-FLAV", name: "Malabar Kitchen Co", dep: "zoyka-kitchens", reg: "South India", ownerEmail: "artisan_south@zoyka.com" },
-        { key: "OUT-W-ART", name: "Gujarat Craft Village", dep: "kaarigar", reg: "West India", ownerEmail: "artisan_west@zoyka.com" },
-        { key: "OUT-W-FARM", name: "Maha Agro Producers", dep: "kisan-setu", reg: "West India", ownerEmail: "artisan_west@zoyka.com" }
+        { key: "OUT-N-ART", name: "Delhi Craft House", dep: "artisan-hub", reg: "North India", ownerEmail: "artisan_north@zoyka.com" },
+        { key: "OUT-N-FARM", name: "Punjab Golden Farms", dep: "farmer-hub", reg: "North India", ownerEmail: "artisan_north@zoyka.com" },
+        { key: "OUT-N-FLAV", name: "Chandni Chowk Flavours", dep: "indian-flavours", reg: "North India", ownerEmail: "artisan_north@zoyka.com" },
+        { key: "OUT-S-ART", name: "Mysore Heritage Woods", dep: "artisan-hub", reg: "South India", ownerEmail: "artisan_south@zoyka.com" },
+        { key: "OUT-S-FARM", name: "Kerala Organics", dep: "farmer-hub", reg: "South India", ownerEmail: "artisan_south@zoyka.com" },
+        { key: "OUT-S-FLAV", name: "Malabar Kitchen Co", dep: "indian-flavours", reg: "South India", ownerEmail: "artisan_south@zoyka.com" },
+        { key: "OUT-W-ART", name: "Gujarat Craft Village", dep: "artisan-hub", reg: "West India", ownerEmail: "artisan_west@zoyka.com" },
+        { key: "OUT-W-FARM", name: "Maha Agro Producers", dep: "farmer-hub", reg: "West India", ownerEmail: "artisan_west@zoyka.com" }
     ];
 
     const dbOutlets = {};
-    let isManagerAssigned = false;
+    const managersList = Object.values(dbUsers).filter(u => u.role === "MANAGER");
+    let managerIndex = 0;
 
     for (const out of outletsData) {
         const owner = await prisma.user.findUnique({ where: { email: out.ownerEmail } });
         const departmentId = dbDepartments[out.dep].id;
         const regionId = dbRegions[out.reg].id;
 
-        // 🔥 Assign Manager to the very first outlet only (1-to-1 relationship)
-        const targetManagerId = !isManagerAssigned ? manager.id : null;
-        if (!isManagerAssigned) isManagerAssigned = true;
+        // 🔥 Assign exactly ONE manager to this outlet
+        const targetManagerId = managersList[managerIndex] ? managersList[managerIndex].id : null;
+        managerIndex++;
 
         dbOutlets[out.key] = await prisma.outlet.upsert({
             where: { key: out.key },
@@ -159,8 +171,6 @@ const main = async () => {
 
     const dbProducts = {};
     for (const p of productsData) {
-        if (!dbCategories[p.cat]) throw new Error(`CRITICAL ERROR: Product references missing category '${p.cat}'`);
-
         const outletId = dbOutlets[p.out].id;
         const categoryId = dbCategories[p.cat].id;
         const artisan = await prisma.user.findUnique({ where: { email: p.artisanEmail } });
@@ -294,7 +304,7 @@ const main = async () => {
     }
 
     console.log("\n✅ MASTER SEED COMPLETED SUCCESSFULLY! 🎉");
-    console.log(`Everything perfectly synchronized!`);
+    console.log(`Everything is perfectly synchronized! Outlets now have 1-to-1 Manager assignments!`);
 };
 
 main()

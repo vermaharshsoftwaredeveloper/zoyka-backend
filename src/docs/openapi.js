@@ -512,7 +512,6 @@ const openApiSpec = {
           },
         },
       },
-      // ... existing code inside components.schemas ...
 
       Category: {
         type: "object",
@@ -569,8 +568,8 @@ const openApiSpec = {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          name: { type: "string", example: "Kaarigar" },
-          slug: { type: "string", example: "kaarigar" },
+          name: { type: "string", example: "Artisan Hub" },
+          slug: { type: "string", example: "artisan hub" },
           description: { type: "string", nullable: true, example: "Handcrafted artisan products" },
           isActive: { type: "boolean", example: true },
           _count: {
@@ -589,8 +588,8 @@ const openApiSpec = {
         type: "object",
         required: ["name"],
         properties: {
-          name: { type: "string", example: "Kaarigar" },
-          slug: { type: "string", example: "kaarigar" },
+          name: { type: "string", example: "Artisan Hub" },
+          slug: { type: "string", example: "artisan hub" },
           description: { type: "string", example: "Handcrafted artisan products" },
         }
       },
