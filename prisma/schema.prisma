@@ -375,11 +375,10 @@ model Region {
   state    String
   district String
 
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  regionHead String?
 
   outlets Outlet[]
 
@@ -401,7 +400,6 @@ model Category {
   department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
 
   products Product[]
-  regions  Region[]
   outlets  Outlet[]
 
   createdAt DateTime @default(now())

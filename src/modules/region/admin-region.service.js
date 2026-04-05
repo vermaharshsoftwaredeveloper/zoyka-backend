@@ -1,30 +1,18 @@
 import prisma from "../../config/prisma.js";
 import ApiError from "../../utils/api-error/index.js";
 
-const verifyManagerRole = async (managerId) => {
-    if (!managerId) return;
-    const user = await prisma.user.findUnique({ where: { id: managerId } });
-    if (!user) {
-        throw new ApiError(404, "The specified user for Manager was not found.");
-    }
-    if (user.role !== 'MANAGER' && user.role !== 'ADMIN') {
-        throw new ApiError(400, "The assigned user must have a MANAGER or ADMIN role.");
-    }
-};
-
 export const getAllRegionsAdminService = async (filters) => {
     const where = {};
-    if (filters.categoryId) where.categoryId = filters.categoryId;
+    if (filters.departmentId) where.departmentId = filters.departmentId;
 
     const regions = await prisma.region.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         include: {
-            category: { select: { id: true, name: true } },
-            manager: { select: { id: true, name: true, email: true } },
+            department: { select: { id: true, name: true } },
             _count: { select: { outlets: true } },
             outlets: {
-                where: { isActive: true, owner: { role: 'PRODUCER' } },
+                where: { isActive: true },
                 select: { id: true }
             }
         }
@@ -33,26 +21,25 @@ export const getAllRegionsAdminService = async (filters) => {
     return regions.map(r => ({
         id: r.id,
         name: r.name,
-        isActive: r.isActive,
         state: r.state,
         district: r.district,
-        manager: r.manager,
-        totalOutlets: r._count.outlets,
-        activeProducersCount: r.outlets.length
+        regionHead: r.regionHead,
+        isActive: r.isActive,
+        department: r.department,
+        createdAt: r.createdAt,
+        stats: {
+            activeOutlets: r.outlets.length,
+            totalOutlets: r._count.outlets
+        }
     }));
 };
 
 export const createRegionService = async (data) => {
-    const existingRegion = await prisma.region.findUnique({ where: { name: data.name,district: data.district } });
-    if (existingRegion) {
-        throw new ApiError(400, "A region with this name already exists.");
-    }
-
-    await verifyManagerRole(data.managerId);
+    const existingRegion = await prisma.region.findUnique({ where: { name: data.name } });
+    if (existingRegion) throw new ApiError(400, "Region with this name already exists.");
 
     return await prisma.region.create({
         data,
-        include: { manager: { select: { name: true, email: true } } }
     });
 };
 
@@ -65,14 +52,9 @@ export const updateRegionService = async (id, data) => {
         if (conflict) throw new ApiError(400, "Another region with this name already exists.");
     }
 
-    if (data.managerId !== undefined && data.managerId !== region.managerId) {
-        await verifyManagerRole(data.managerId);
-    }
-
     return await prisma.region.update({
         where: { id },
         data,
-        include: { manager: { select: { name: true, email: true } } }
     });
 };
 
@@ -95,9 +77,8 @@ export const deleteRegionService = async (id) => {
     if (!region) throw new ApiError(404, "Region not found.");
 
     if (region._count.outlets > 0) {
-        throw new ApiError(400, `Cannot delete region. It currently has ${region._count.outlets} producers/outlets assigned to it.`);
+        throw new ApiError(400, "Cannot delete region with existing outlets. Deactivate it instead or reassign outlets.");
     }
 
-    await prisma.region.delete({ where: { id } });
-    return { message: "Region deleted successfully." };
+    return await prisma.region.delete({ where: { id } });
 };

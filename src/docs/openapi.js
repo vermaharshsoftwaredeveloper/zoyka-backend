@@ -689,45 +689,35 @@ const openApiSpec = {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
-          name: { type: "string", example: "Warangal" },
+          name: { type: "string", example: "North India" },
+          state: { type: "string", example: "Delhi" },
+          district: { type: "string", example: "New Delhi" },
+          regionHead: { type: "string", example: "Rakesh Sharma" },
+          departmentId: { type: "string", format: "uuid" },
           isActive: { type: "boolean", example: true },
-          category: {
-            type: "object",
-            nullable: true,
-            properties: {
-              id: { type: "string", format: "uuid" },
-              name: { type: "string", example: "Handicrafts" }
-            }
-          },
-          manager: {
-            type: "object",
-            nullable: true,
-            properties: {
-              id: { type: "string", format: "uuid" },
-              name: { type: "string", example: "Rahul Manager" },
-              email: { type: "string", format: "email", example: "rahul@zoyka.com" },
-            }
-          },
-          totalOutlets: { type: "integer", example: 15 },
-          activeProducersCount: { type: "integer", example: 12 },
-        },
+          createdAt: { type: "string", format: "date-time" }
+        }
       },
       CreateRegionRequest: {
         type: "object",
-        required: ["name"],
+        required: ["name", "state", "district"],
         properties: {
-          name: { type: "string", example: "Warangal" },
-          managerId: { type: "string", format: "uuid", nullable: true, example: "123e4567-e89b-12d3-a456-426614174000" },
-          categoryId: { type: "string", format: "uuid", nullable: true, example: "987e6543-e21b-12d3-a456-426614174000" },
-        },
+          name: { type: "string", example: "North India" },
+          state: { type: "string", example: "Delhi" },
+          district: { type: "string", example: "New Delhi" },
+          regionHead: { type: "string", example: "Rakesh Sharma" },
+          departmentId: { type: "string", format: "uuid" }
+        }
       },
       UpdateRegionRequest: {
         type: "object",
         properties: {
-          name: { type: "string", example: "South Telangana" },
-          managerId: { type: "string", format: "uuid", nullable: true },
-          categoryId: { type: "string", format: "uuid", nullable: true },
-        },
+          name: { type: "string", example: "North India" },
+          state: { type: "string", example: "Delhi" },
+          district: { type: "string", example: "New Delhi" },
+          regionHead: { type: "string", example: "Rakesh Sharma" },
+          departmentId: { type: "string", format: "uuid" }
+        }
       },
       OperationalManager: {
         type: "object",
@@ -2476,6 +2466,33 @@ const openApiSpec = {
           },
         },
       },
+      post: {
+        tags: ["Admin"],
+        summary: "Add a new Operations Manager (Admin Only)",
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["name", "email", "mobile", "password"],
+                properties: {
+                  name: { type: "string", example: "Rakesh Sharma" },
+                  email: { type: "string", format: "email", example: "rakesh.manager@zoyka.com" },
+                  mobile: { type: "string", example: "9876543210" },
+                  password: { type: "string", example: "SecurePass@123" }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          201: { description: "Operations Manager added successfully" },
+          400: { description: "Invalid input data" },
+          409: { description: "Email or mobile already exists" }
+        }
+      }
     },
     "/api/admin/outlets": {
       get: {

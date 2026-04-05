@@ -11,8 +11,14 @@ const parseBody = (schema, body) => {
     return parsed.data;
 };
 
+const parseQuery = (schema, query) => {
+    const parsed = schema.safeParse(query);
+    if (!parsed.success) throw new ApiError(400, parsed.error.issues[0]?.message);
+    return parsed.data;
+};
+
 export const getAllRegionsAdmin = asyncHandler(async (req, res) => {
-    const filters = req.query.categoryId ? { categoryId: req.query.categoryId } : {};
+    const filters = parseQuery(getRegionsQuerySchema, req.query);
     const regions = await adminRegionService.getAllRegionsAdminService(filters);
     res.status(200).json({ success: true, data: regions });
 });
