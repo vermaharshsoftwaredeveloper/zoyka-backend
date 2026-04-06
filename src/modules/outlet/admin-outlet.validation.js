@@ -14,6 +14,8 @@ export const createOutletSchema = z.object({
     monthlyCapacity: z.number().int().nonnegative().optional().nullable(),
     qualityScore: z.number().min(0).max(100).optional().nullable(),
     address: z.string().optional().nullable(),
+    noOfArtisans: z.number().int().nonnegative().optional(),
+    location: z.string().trim().optional(),
 });
 
 export const updateOutletSchema = z.object({
@@ -26,4 +28,6 @@ export const updateOutletSchema = z.object({
     monthlyCapacity: z.number().int().nonnegative().optional().nullable(),
     qualityScore: z.number().min(0).max(100).optional().nullable(),
     address: z.string().optional().nullable(),
+    noOfArtisans: z.number().optional(),
+    location: z.string().optional(),
 });

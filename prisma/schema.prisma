@@ -51,6 +51,9 @@ model Outlet {
   monthlyCapacity Int?
   qualityScore    Float?  @default(0)
   address         String?
+  location        String?
+
+  noOfArtisans Int?
 
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
@@ -128,20 +131,27 @@ model Banner {
 }
 
 model User {
-  id              String      @id @default(uuid())
-  email           String      @unique
-  password        String
-  createdAt       DateTime    @default(now())
-  isEmailVerified Boolean     @default(false)
-  mobile          String      @unique
-  name            String
-  updatedAt       DateTime    @updatedAt
-  avatar          String?
-  role            Role        @default(USER)
-  otp             String?
-  otpExpiry       DateTime?
-  otpPurpose      OtpPurpose?
-  refreshToken    String?
+  id                String      @id @default(uuid())
+  email             String      @unique
+  password          String
+  createdAt         DateTime    @default(now())
+  isEmailVerified   Boolean     @default(false)
+  mobile            String      @unique
+  name              String
+  updatedAt         DateTime    @updatedAt
+  avatar            String?
+  role              Role        @default(USER)
+  otp               String?
+  otpExpiry         DateTime?
+  otpPurpose        OtpPurpose?
+  refreshToken      String?
+  yearsOfExperience Int?
+  location          String?
+  isActive          Boolean     @default(true)
+  joiningDate       DateTime    @default(now())
+  bankAccountNo     String?
+  bankName          String?
+  bankIfscCode      String?
 
   addresses      Address[]
   bulkInquiries  BulkOrderInquiry[]

@@ -422,21 +422,33 @@ const openApiSpec = {
         type: "object",
         required: ["key", "name"],
         properties: {
-          key: { type: "string", example: "warangal-organics-store" },
-          name: { type: "string", example: "Warangal Organics Store" },
-          description: { type: "string", nullable: true },
-          imageUrl: { type: "string", format: "uri", nullable: true },
-          isActive: { type: "boolean", example: true },
-        },
+          key: { type: "string", example: "OUT-N-ART" },
+          name: { type: "string", example: "Delhi Craft House" },
+          description: { type: "string" },
+          regionId: { type: "string", format: "uuid" },
+          departmentId: { type: "string", format: "uuid" },
+          managerId: { type: "string", format: "uuid" },
+          monthlyCapacity: { type: "integer", example: 500 },
+          qualityScore: { type: "number", example: 4.8 },
+          address: { type: "string" },
+          location: { type: "string", example: "Connaught Place, Delhi" },
+          noOfArtisans: { type: "integer", example: 15 }
+        }
       },
       AdminUpdateOutletRequest: {
         type: "object",
         properties: {
-          key: { type: "string" },
-          name: { type: "string" },
-          description: { type: "string", nullable: true },
-          imageUrl: { type: "string", format: "uri", nullable: true },
-          isActive: { type: "boolean" },
+          key: { type: "string", example: "OUT-N-ART" },
+          name: { type: "string", example: "Delhi Craft House" },
+          description: { type: "string" },
+          regionId: { type: "string", format: "uuid" },
+          departmentId: { type: "string", format: "uuid" },
+          managerId: { type: "string", format: "uuid" },
+          monthlyCapacity: { type: "integer", example: 500 },
+          qualityScore: { type: "number", example: 4.8 },
+          address: { type: "string" },
+          location: { type: "string", example: "Connaught Place, Delhi" },
+          noOfArtisans: { type: "integer", example: 15 }
         },
       },
       Testimonial: {
@@ -520,10 +532,10 @@ const openApiSpec = {
           name: { type: "string", example: "Spices" },
           slug: { type: "string", example: "spices" },
           description: { type: "string", nullable: true, example: "Fresh organic spices" },
-          imageUrl: { type: "string", format: "uri", nullable: true, example: "https://zoyka-images.s3.amazonaws.com/spices-banner.jpg" }, // 🔥 NEW
-          isActive: { type: "boolean", example: true }, // 🔥 NEW
-          departmentId: { type: "string", format: "uuid", nullable: true }, // 🔥 NEW
-          department: { // 🔥 NEW
+          imageUrl: { type: "string", format: "uri", nullable: true, example: "https://zoyka-images.s3.amazonaws.com/spices-banner.jpg" },
+          isActive: { type: "boolean", example: true },
+          departmentId: { type: "string", format: "uuid", nullable: true },
+          department: {
             type: "object",
             nullable: true,
             properties: {
@@ -808,22 +820,60 @@ const openApiSpec = {
         type: "object",
         required: ["key", "name"],
         properties: {
-          key: { type: "string", example: "karigar-hub" },
-          name: { type: "string", example: "Karigar Hub" },
-          description: { type: "string", nullable: true, example: "Handcrafted wooden toys" },
-          regionId: { type: "string", format: "uuid", nullable: true },
-          ownerId: { type: "string", format: "uuid", nullable: true },
+          outletId: { type: "string", format: "uuid" },
+          artisanName: { type: "string", example: "Ramesh Singh" },
+          mobile: { type: "string", example: "9100000010" },
+          email: { type: "string", format: "email", example: "ramesh@zoyka.com" },
+          yearsOfExperience: { type: "integer", example: 12 },
+          address: { type: "string" },
+          monthlyCapacity: { type: "integer" },
+          categoryId: { type: "string", format: "uuid" },
+          regionId: { type: "string", format: "uuid" }
         },
+      },
+      CreateArtisanRequest: {
+        type: "object",
+        required: ["outletId", "artisanName", "mobile", "email"],
+        properties: {
+          outletId: { type: "string", format: "uuid" },
+          artisanName: { type: "string", example: "Ramesh Singh" },
+          mobile: { type: "string", example: "9100000010" },
+          email: { type: "string", format: "email", example: "ramesh@zoyka.com" },
+          yearsOfExperience: { type: "integer", example: 12 }, // 🔥 NEW
+          address: { type: "string" },
+          monthlyCapacity: { type: "integer" },
+          categoryId: { type: "string", format: "uuid" },
+          regionId: { type: "string", format: "uuid" }
+        }
+      },
+      UpdateArtisanRequest: {
+        type: "object",
+        required: ["outletId", "artisanName", "mobile", "email"],
+        properties: {
+          outletId: { type: "string", format: "uuid" },
+          artisanName: { type: "string", example: "Ramesh Singh" },
+          mobile: { type: "string", example: "9100000010" },
+          email: { type: "string", format: "email", example: "ramesh@zoyka.com" },
+          yearsOfExperience: { type: "integer", example: 12 }, // 🔥 NEW
+          address: { type: "string" },
+          monthlyCapacity: { type: "integer" },
+          categoryId: { type: "string", format: "uuid" },
+          regionId: { type: "string", format: "uuid" }
+        }
       },
       UpdateProducerRequest: {
         type: "object",
         properties: {
-          key: { type: "string", example: "karigar-hub-v2" },
-          name: { type: "string", example: "Karigar Hub Premium" },
-          description: { type: "string", nullable: true },
-          regionId: { type: "string", format: "uuid", nullable: true },
-          ownerId: { type: "string", format: "uuid", nullable: true },
-        },
+          outletId: { type: "string", format: "uuid" },
+          artisanName: { type: "string", example: "Ramesh Singh" },
+          mobile: { type: "string", example: "9100000010" },
+          email: { type: "string", format: "email", example: "ramesh@zoyka.com" },
+          yearsOfExperience: { type: "integer", example: 12 }, // 🔥 NEW
+          address: { type: "string" },
+          monthlyCapacity: { type: "integer" },
+          categoryId: { type: "string", format: "uuid" },
+          regionId: { type: "string", format: "uuid" }
+        }
       },
     },
   },
@@ -2481,7 +2531,15 @@ const openApiSpec = {
                   name: { type: "string", example: "Rakesh Sharma" },
                   email: { type: "string", format: "email", example: "rakesh.manager@zoyka.com" },
                   mobile: { type: "string", example: "9876543210" },
-                  password: { type: "string", example: "SecurePass@123" }
+                  password: { type: "string", example: "SecurePass@123" },
+                  location: { type: "string", example: "Indore, MP" },
+                  avatar: { type: "string", format: "uri" },
+                  outletId: { type: "string", format: "uuid", description: "Instantly assign this manager to an outlet" },
+                  isActive: { type: "boolean", default: true },
+                  joiningDate: { type: "string", format: "date-time", example: "2026-04-06T10:00:00Z" },
+                  bankAccountNo: { type: "string", example: "32145698700" },
+                  bankName: { type: "string", example: "HDFC Bank" },
+                  bankIfscCode: { type: "string", example: "HDFC0001234" }
                 }
               }
             }
@@ -2974,8 +3032,8 @@ const openApiSpec = {
 
                   outletId: { type: "string", format: "uuid", description: "Optional: ID of the Outlet (Storefront)" },
                   description: { type: "string", example: "Beautifully carved showpiece." },
-                  specialFeatures: { type: "string", example: "Made from sustainably sourced teak wood and painted with natural dyes." }, // 🔥 NEW
-                  material: { type: "string", example: "Teak Wood" }, // 🔥 NEW
+                  specialFeatures: { type: "string", example: "Made from sustainably sourced teak wood and painted with natural dyes." },
+                  material: { type: "string", example: "Teak Wood" },
                   producerName: { type: "string", example: "Ramesh Singh" },
                   producerStory: { type: "string", example: "Crafting wooden artifacts for 20 years in the heart of Rajasthan." },
                   district: { type: "string", example: "Jaipur" },

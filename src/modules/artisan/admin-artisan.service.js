@@ -49,6 +49,7 @@ export const getAllArtisansAdminService = async (filters) => {
             activeSKUs: artisan.products.length,
             rating: rating._avg.rating ? Number(rating._avg.rating.toFixed(1)) : 0,
             thisMonthEarnings: earnings._sum.totalAmount || 0,
+            yearsOfExperience: artisan.yearsOfExperience || 0,
         };
     }));
 
@@ -141,8 +142,12 @@ export const getArtisanByIdAdminService = async (id) => {
 };
 
 export const updateArtisanService = async (id, data) => {
-    return await prisma.outlet.update({
-        where: { id }, data: {
+    const outlet = await prisma.outlet.findUnique({ where: { id } });
+    if (!outlet) throw new ApiError(404, "Artisan Outlet not found");
+
+    const updatedOutlet = await prisma.outlet.update({
+        where: { id },
+        data: {
             name: data.outletName,
             address: data.address,
             monthlyCapacity: data.monthlyCapacity,
@@ -151,6 +156,15 @@ export const updateArtisanService = async (id, data) => {
             isActive: data.isActive
         }
     });
+
+    if (data.yearsOfExperience !== undefined && outlet.ownerId) {
+        await prisma.user.update({
+            where: { id: outlet.ownerId },
+            data: { yearsOfExperience: data.yearsOfExperience }
+        });
+    }
+
+    return updatedOutlet;
 };
 
 export const toggleArtisanStatusService = async (id) => {
