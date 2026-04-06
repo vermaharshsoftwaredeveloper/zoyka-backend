@@ -1,7 +1,7 @@
 import { asyncHandler } from "../../utils/async-handler/index.js";
 import ApiError from "../../utils/api-error/index.js";
 import * as adminRegionService from "./admin-region.service.js";
-import { createRegionSchema, updateRegionSchema } from "./admin-region.validation.js";
+import { createRegionSchema, getRegionsQuerySchema, updateRegionSchema } from "./admin-region.validation.js";
 
 const parseBody = (schema, body) => {
     const parsed = schema.safeParse(body);
