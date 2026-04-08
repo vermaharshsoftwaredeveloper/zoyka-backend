@@ -6,29 +6,21 @@ const main = async () => {
     console.log("🌱 Starting Master Seed for ALL Models...");
 
     // ==========================================
-    // 1. USERS (Users Model)
+    // 1. USERS & ARTISANS
     // ==========================================
-    console.log("⏳ Seeding Users...");
+    console.log("⏳ Seeding Users & Artisans...");
     const hashedPassword = await hashPassword("Password@123");
 
     const baseUsers = [
         { email: "admin@zoyka.com", mobile: "9000000001", name: "Super Admin", role: "ADMIN" },
         { email: "customer@zoyka.com", mobile: "9000000003", name: "Rahul Customer", role: "USER" },
 
-        // 🔥 ENHANCED: Created 8 distinct Ops Managers for our 1-to-1 Outlet Relationship!
+        // Ops Managers
         { email: "manager_n_art@zoyka.com", mobile: "9200000001", name: "Ops Manager 1", role: "MANAGER" },
-        { email: "manager_n_farm@zoyka.com", mobile: "9200000002", name: "Ops Manager 2", role: "MANAGER" },
-        { email: "manager_n_flav@zoyka.com", mobile: "9200000003", name: "Ops Manager 3", role: "MANAGER" },
-        { email: "manager_s_art@zoyka.com", mobile: "9200000004", name: "Ops Manager 4", role: "MANAGER" },
-        { email: "manager_s_farm@zoyka.com", mobile: "9200000005", name: "Ops Manager 5", role: "MANAGER" },
-        { email: "manager_s_flav@zoyka.com", mobile: "9200000006", name: "Ops Manager 6", role: "MANAGER" },
-        { email: "manager_w_art@zoyka.com", mobile: "9200000007", name: "Ops Manager 7", role: "MANAGER" },
-        { email: "manager_w_farm@zoyka.com", mobile: "9200000008", name: "Ops Manager 8", role: "MANAGER" },
+        { email: "manager_s_art@zoyka.com", mobile: "9200000004", name: "Ops Manager 2", role: "MANAGER" },
 
-        // Artisans
-        { email: "artisan_north@zoyka.com", mobile: "9100000010", name: "Ramesh Singh", role: "ARTISAN" },
-        { email: "artisan_south@zoyka.com", mobile: "9100000020", name: "Karthik Nair", role: "ARTISAN" },
-        { email: "artisan_west@zoyka.com", mobile: "9100000030", name: "Amit Patel", role: "ARTISAN" }
+        // 🔥 Your Authentic South Indian Wooden Toy Artisans
+        { email: "poniki_artisan@zoyka.com", mobile: "9100000010", name: "B. Shekar & R. Kishan", role: "ARTISAN", location: "Kondapalli, Andhra Pradesh", yearsOfExperience: 30, bankName: "SBI", bankAccountNo: "000011112222", bankIfscCode: "SBIN0000123" }
     ];
 
     const dbUsers = {};
@@ -42,276 +34,115 @@ const main = async () => {
     const customer = dbUsers["customer@zoyka.com"];
 
     // ==========================================
-    // 2. DEPARTMENTS (Updated Names!)
+    // 2 & 3 & 4. DEPTS, CATS & REGIONS
     // ==========================================
-    console.log("⏳ Seeding Departments...");
-    const departmentsData = [
-        { name: "Artisan's Touch", slug: "artisans-touch", description: "Handcrafted artisan products" },
-        { name: "Farmer Hub", slug: "farmer-hub", description: "Direct from farm organic produce" },
-        { name: "Indian Flavours", slug: "indian-flavours", description: "Authentic local flavors and preserves" }
-    ];
+    console.log("⏳ Seeding Departments, Categories & Regions...");
+    const dept = await prisma.department.upsert({
+        where: { name: "Artisan Hub" },
+        update: {}, create: { name: "Artisan Hub", slug: "artisan-hub", description: "Handcrafted artisan products", isActive: true },
+    });
 
-    const dbDepartments = {};
-    for (const dep of departmentsData) {
-        dbDepartments[dep.slug] = await prisma.department.upsert({
-            where: { name: dep.name },
-            update: { slug: dep.slug, description: dep.description },
-            create: { ...dep, isActive: true },
-        });
-    }
+    const category = await prisma.category.upsert({
+        where: { name: "Wooden Utilities" },
+        update: {}, create: { name: "Wooden Utilities", slug: "wooden-utilities", description: "Hand-carved wooden items", departmentId: dept.id, isActive: true },
+    });
 
-    // ==========================================
-    // 3. CATEGORIES (Micro-Domains)
-    // ==========================================
-    console.log("⏳ Seeding Categories...");
-    const categoriesData = [
-        { name: "Wooden Utilities", slug: "wooden-utilities", depSlug: "artisan-hub", desc: "Hand-carved wooden items" },
-        { name: "Handlooms & Fabrics", slug: "handlooms", depSlug: "artisan-hub", desc: "Authentic regional weaves" },
-        { name: "Planters & Pottery", slug: "planters-pottery", depSlug: "artisan-hub", desc: "Clay and ceramic pots" },
-        { name: "Organic Staples", slug: "organic-staples", depSlug: "farmer-hub", desc: "Rice, wheat, and pulses" },
-        { name: "Spices", slug: "spices", depSlug: "farmer-hub", desc: "Whole and powdered authentic spices" },
-        { name: "Cold Pressed Oils", slug: "cold-pressed-oils", depSlug: "farmer-hub", desc: "Pure wood-pressed oils" },
-        { name: "Pickles & Blends", slug: "pickles-blends", depSlug: "indian-flavours", desc: "Traditional homemade pickles" },
-        { name: "Ready to Eat Snacks", slug: "ready-to-eat", depSlug: "indian-flavours", desc: "Fresh regional snacks" }
-    ];
-
-    const dbCategories = {};
-    for (const cat of categoriesData) {
-        if (!dbDepartments[cat.depSlug]) throw new Error(`CRITICAL ERROR: Missing department '${cat.depSlug}'`);
-        const departmentId = dbDepartments[cat.depSlug].id;
-        dbCategories[cat.slug] = await prisma.category.upsert({
-            where: { name: cat.name },
-            update: { slug: cat.slug, description: cat.desc, departmentId },
-            create: { name: cat.name, slug: cat.slug, description: cat.desc, departmentId, isActive: true },
-        });
-    }
+    const region = await prisma.region.upsert({
+        where: { name: "South India" },
+        update: {}, create: { name: "South India", isActive: true, state: "Andhra Pradesh", district: "Vijayawada", regionHead: "Anita Reddy" },
+    });
 
     // ==========================================
-    // 4. REGIONS
+    // 5. OUTLETS 
     // ==========================================
-    console.log("⏳ Seeding Regions...");
-    const regionsData = [
-        { name: "North India", state: "Delhi", district: "New Delhi" },
-        { name: "South India", state: "Karnataka", district: "Bangalore" },
-        { name: "West India", state: "Maharashtra", district: "Mumbai" }
-    ];
-
-    const dbRegions = {};
-    for (const reg of regionsData) {
-        dbRegions[reg.name] = await prisma.region.upsert({
-            where: { name: reg.name },
-            update: { state: reg.state, district: reg.district },
-            create: { name: reg.name, isActive: true, state: reg.state, district: reg.district },
-        });
-    }
+    console.log("⏳ Seeding Outlet...");
+    const outlet = await prisma.outlet.upsert({
+        where: { key: "OUT-PONIKI-TOYS" },
+        update: {}, 
+        create: {
+            key: "OUT-PONIKI-TOYS", name: "Kondapalli Wooden Crafts", description: "Authentic Poniki wood creations",
+            address: "Main Market, Kondapalli", monthlyCapacity: 500, qualityScore: 4.9,
+            ownerId: dbUsers["poniki_artisan@zoyka.com"].id, departmentId: dept.id, regionId: region.id, 
+            managerId: dbUsers["manager_s_art@zoyka.com"].id, location: "Kondapalli", noOfArtisans: 15
+        },
+    });
 
     // ==========================================
-    // 5. OUTLETS (With 1-to-1 Manager Assignment)
+    // 6. REAL PRODUCTS (Linked to Local Images!)
     // ==========================================
-    console.log("⏳ Seeding Outlets...");
-    const outletsData = [
-        { key: "OUT-N-ART", name: "Delhi Craft House", dep: "artisan-hub", reg: "North India", ownerEmail: "artisan_north@zoyka.com" },
-        { key: "OUT-N-FARM", name: "Punjab Golden Farms", dep: "farmer-hub", reg: "North India", ownerEmail: "artisan_north@zoyka.com" },
-        { key: "OUT-N-FLAV", name: "Chandni Chowk Flavours", dep: "indian-flavours", reg: "North India", ownerEmail: "artisan_north@zoyka.com" },
-        { key: "OUT-S-ART", name: "Mysore Heritage Woods", dep: "artisan-hub", reg: "South India", ownerEmail: "artisan_south@zoyka.com" },
-        { key: "OUT-S-FARM", name: "Kerala Organics", dep: "farmer-hub", reg: "South India", ownerEmail: "artisan_south@zoyka.com" },
-        { key: "OUT-S-FLAV", name: "Malabar Kitchen Co", dep: "indian-flavours", reg: "South India", ownerEmail: "artisan_south@zoyka.com" },
-        { key: "OUT-W-ART", name: "Gujarat Craft Village", dep: "artisan-hub", reg: "West India", ownerEmail: "artisan_west@zoyka.com" },
-        { key: "OUT-W-FARM", name: "Maha Agro Producers", dep: "farmer-hub", reg: "West India", ownerEmail: "artisan_west@zoyka.com" }
-    ];
-
-    const dbOutlets = {};
-    const managersList = Object.values(dbUsers).filter(u => u.role === "MANAGER");
-    let managerIndex = 0;
-
-    for (const out of outletsData) {
-        const owner = await prisma.user.findUnique({ where: { email: out.ownerEmail } });
-        const departmentId = dbDepartments[out.dep].id;
-        const regionId = dbRegions[out.reg].id;
-
-        // 🔥 Assign exactly ONE manager to this outlet
-        const targetManagerId = managersList[managerIndex] ? managersList[managerIndex].id : null;
-        managerIndex++;
-
-        dbOutlets[out.key] = await prisma.outlet.upsert({
-            where: { key: out.key },
-            update: { name: out.name, departmentId, regionId, managerId: targetManagerId },
-            create: {
-                key: out.key, name: out.name, description: `Authentic products from ${out.name}`,
-                address: `Main Market, ${out.reg}`, monthlyCapacity: 500, qualityScore: 4.8,
-                ownerId: owner.id, departmentId, regionId, managerId: targetManagerId
-            },
-        });
-    }
-
-    // ==========================================
-    // 6. PRODUCTS 
-    // ==========================================
-    console.log("⏳ Seeding Products & Images...");
+    console.log("⏳ Seeding 10 Real Products with Local Image Paths...");
+    
+    // I added a 20% markup to generate an "Actual Price" so the frontend can show a discount!
     const productsData = [
-        { out: "OUT-N-ART", artisanEmail: "artisan_north@zoyka.com", cat: "wooden-utilities", title: "Hand-Painted Wooden Elephant", slug: "n-wooden-elephant", actualPrice: 1200, sellingPrice: 850, specialFeatures: "Hand-painted using natural vegetable dyes.", material: "Kadam Wood", stock: 20, rating: 4.9, count: 320, img: "https://images.unsplash.com/photo-1610992015732-2449b76344bc" },
-        { out: "OUT-N-ART", artisanEmail: "artisan_north@zoyka.com", cat: "handlooms", title: "Handwoven Pashmina Shawl", slug: "n-pashmina-shawl", actualPrice: 3500, sellingPrice: 2500, specialFeatures: "100% pure Himalayan Pashmina thread.", material: "Pashmina Wool", stock: 15, rating: 4.7, count: 45, img: "https://images.unsplash.com/photo-1584916201218-f4242ceb4809" },
-        { out: "OUT-N-ART", artisanEmail: "artisan_north@zoyka.com", cat: "planters-pottery", title: "Blue Pottery Vase", slug: "n-blue-pottery", actualPrice: 800, sellingPrice: 600, specialFeatures: "Authentic Jaipur Blue Pottery technique.", material: "Quartz and Glass", stock: 30, rating: 4.5, count: 20, img: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d" },
-
-        { out: "OUT-N-FARM", artisanEmail: "artisan_north@zoyka.com", cat: "organic-staples", title: "Premium Basmati Rice (5kg)", slug: "n-basmati-rice", actualPrice: 850, sellingPrice: 650, specialFeatures: "Aged for 2 years for perfect aroma.", material: "Organic Rice", stock: 100, rating: 4.8, count: 410, img: "https://images.unsplash.com/photo-1586201375761-83865001e8ac" },
-        { out: "OUT-N-FARM", artisanEmail: "artisan_north@zoyka.com", cat: "organic-staples", title: "Raw Forest Honey", slug: "n-forest-honey", actualPrice: 550, sellingPrice: 400, specialFeatures: "Unprocessed, directly sourced from wild combs.", material: "Raw Honey", stock: 50, rating: 4.6, count: 85, img: "https://images.unsplash.com/photo-1587049352847-4d4b12736e51" },
-
-        { out: "OUT-N-FLAV", artisanEmail: "artisan_north@zoyka.com", cat: "pickles-blends", title: "Authentic Mango Pickle", slug: "n-mango-pickle", actualPrice: 250, sellingPrice: 180, specialFeatures: "Sun-dried and preserved in cold-pressed mustard oil.", material: "Raw Mango, Spices", stock: 80, rating: 4.9, count: 500, img: "https://images.unsplash.com/photo-1626082895617-2c6afed31b46" },
-
-        { out: "OUT-S-ART", artisanEmail: "artisan_south@zoyka.com", cat: "wooden-utilities", title: "Rosewood Chess Set", slug: "s-rosewood-chess", actualPrice: 2000, sellingPrice: 1500, specialFeatures: "Magnetic base with velvet lining.", material: "Indian Rosewood", stock: 10, rating: 4.8, count: 215, img: "https://images.unsplash.com/photo-1528819622765-d6bcf132f793" },
-
-        { out: "OUT-S-FARM", artisanEmail: "artisan_south@zoyka.com", cat: "cold-pressed-oils", title: "Cold Pressed Coconut Oil", slug: "s-coconut-oil", actualPrice: 450, sellingPrice: 350, specialFeatures: "Wood-pressed at low temperatures to retain nutrients.", material: "Coconut", stock: 150, rating: 4.9, count: 600, img: "https://images.unsplash.com/photo-1620706857370-e1b9770e8bb1" },
-
-        { out: "OUT-S-FLAV", artisanEmail: "artisan_south@zoyka.com", cat: "spices", title: "Whole Cardamom Pods", slug: "s-cardamom-pods", actualPrice: 1000, sellingPrice: 800, specialFeatures: "Hand-picked from the estates of Idukki.", material: "Spices", stock: 40, rating: 4.8, count: 280, img: "https://images.unsplash.com/photo-1596593452033-6617a220268a" },
-
-        { out: "OUT-W-ART", artisanEmail: "artisan_west@zoyka.com", cat: "handlooms", title: "Bandhani Silk Saree", slug: "w-bandhani-saree", actualPrice: 3500, sellingPrice: 2800, specialFeatures: "Hand-tied and dyed using traditional techniques.", material: "Pure Silk", stock: 12, rating: 4.9, count: 190, img: "https://images.unsplash.com/photo-1610030469983-98e5dba7f214" },
-
-        { out: "OUT-W-FARM", artisanEmail: "artisan_west@zoyka.com", cat: "organic-staples", title: "Devgad Alphonso Mangoes (1 Dozen)", slug: "w-alphonso-mango", actualPrice: 1500, sellingPrice: 1200, specialFeatures: "GI Tagged premium Alphonso mangoes.", material: "Fresh Fruit", stock: 50, rating: 4.9, count: 850, img: "https://images.unsplash.com/photo-1553279768-865429fa0078" },
+        { code: "001", title: "Hen with Chickens (Kodi pillalu)", slug: "001-hen-with-chickens", sellingPrice: 240, actualPrice: 300, desc: "Size: 4x3x4 cm. Waiting Period: 15 days. Colors: 1.", special: "Made With Poniki Wood. Efforts of 30 days. Artist: B. Shekar (30+ Yrs Exp).", img: "/uploads/products/001-hen-with-chickens.jpg" },
+        { code: "002", title: "Sparrow (Pichuka)", slug: "002-sparrow", sellingPrice: 240, actualPrice: 300, desc: "Size: 2.5x9x5 cm. Waiting Period: 15 days. Colors: 5.", special: "Made With Poniki Wood. Efforts of 30 days. Artist: R. Kishan (40+ Yrs Exp).", img: "/uploads/products/002-sparrow.jpg" },
+        { code: "003", title: "Stork (Konga) - Medium", slug: "003-stork", sellingPrice: 440, actualPrice: 550, desc: "Size: 3x13.5x5.5 cm. Waiting Period: 15 days. Colors: 1.", special: "Made With Poniki Wood. Efforts of 30 days. Artist: B. Shekar (30+ Yrs Exp).", img: "/uploads/products/003-stork.jpg" },
+        { code: "004", title: "Birds Keyboard Hanger", slug: "004-birds-keyboard", sellingPrice: 390, actualPrice: 490, desc: "Size: 8x7 cm. Waiting Period: 15 days. Colors: 1.", special: "Made With Poniki Wood. Efforts of 30 days. Artist: B. Shekar (30+ Yrs Exp).", img: "/uploads/products/004-birds-keyboard.jpg" },
+        { code: "005", title: "Women with Pot (Kunda Bomma)", slug: "005-women-pot", sellingPrice: 380, actualPrice: 480, desc: "Size: 1.5x8 cm. Waiting Period: 15 days. Colors: 1.", special: "Made With Poniki Wood. Efforts of 30 days. Artist: B. Shekar (30+ Yrs Exp).", img: "/uploads/products/005-women-with-pot.jpg" },
+        { code: "006", title: "Hen (Kodi Petta) - Small", slug: "006-hen", sellingPrice: 240, actualPrice: 300, desc: "Size: 2.5x6.5x2.5 cm. Waiting Period: 15 days. Colors: 1.", special: "Made With Poniki Wood. Efforts of 30 days. Artist: R. Kishan (40+ Yrs Exp).", img: "/uploads/products/006-hen.jpg" },
+        { code: "007", title: "Peacock (Nemali) - Small", slug: "007-peacock", sellingPrice: 280, actualPrice: 350, desc: "Size: 2.5x6x2.5 cm. Waiting Period: 15 days. Colors: 1.", special: "Made With Poniki Wood. Efforts of 30 days. Artist: R. Kishan (40+ Yrs Exp).", img: "/uploads/products/007-peacock.jpg" },
+        { code: "008", title: "Rabbit (Kundelu)", slug: "008-rabbit", sellingPrice: 340, actualPrice: 430, desc: "Size: 1.5x4x8 cm. Waiting Period: 15 days. Colors: 1.", special: "Made With Poniki Wood. Efforts of 30 days. Artist: P. Narsaiah (50+ Yrs Exp).", img: "/uploads/products/008-rabbit.jpg" },
+        { code: "009", title: "Cow (Avu)", slug: "009-cow", sellingPrice: 340, actualPrice: 430, desc: "Size: 2.5x6x4 cm. Waiting Period: 15 days. Colors: 1.", special: "Made With Poniki Wood. Efforts of 30 days. Artist: P. Narsaiah (50+ Yrs Exp).", img: "/uploads/products/009-cow.jpg" },
+        { code: "010", title: "Elephant (Anugu) - Small", slug: "010-elephant", sellingPrice: 340, actualPrice: 430, desc: "Size: 2x5x5 cm. Waiting Period: 15 days. Colors: 2 (White, Grey).", special: "Made With Poniki Wood. Efforts of 30 days. Artist: P. Narsaiah (50+ Yrs Exp).", img: "/uploads/products/010-elephant.jpg" },
     ];
 
     const dbProducts = {};
     for (const p of productsData) {
-        const outletId = dbOutlets[p.out].id;
-        const categoryId = dbCategories[p.cat].id;
-        const artisan = await prisma.user.findUnique({ where: { email: p.artisanEmail } });
-
         dbProducts[p.slug] = await prisma.product.upsert({
-            where: { outletId_slug: { outletId, slug: p.slug } },
-            update: {
-                actualPrice: p.actualPrice,
-                sellingPrice: p.sellingPrice,
-                stock: p.stock,
-                averageRating: p.rating,
-                totalRatingsCount: p.count,
-                categoryId,
-                artisanId: artisan.id,
-                specialFeatures: p.specialFeatures,
-                material: p.material
-            },
+            where: { outletId_slug: { outletId: outlet.id, slug: p.slug } },
+            update: {},
             create: {
-                title: p.title,
-                slug: p.slug,
-                description: `Authentic ${p.title} sourced directly from local producers.`,
-                specialFeatures: p.specialFeatures,
-                material: p.material,
-                actualPrice: p.actualPrice,
-                sellingPrice: p.sellingPrice,
-                stock: p.stock,
-                averageRating: p.rating,
-                totalRatingsCount: p.count,
-                outletId,
-                categoryId,
-                artisanId: artisan.id,
+                title: p.title, slug: p.slug, description: p.desc,
+                specialFeatures: p.special, material: "Poniki Wood", actualPrice: p.actualPrice,
+                sellingPrice: p.sellingPrice, stock: 50, averageRating: 4.8, totalRatingsCount: 120,
+                outletId: outlet.id, categoryId: category.id, artisanId: dbUsers["poniki_artisan@zoyka.com"].id, 
                 images: { create: [{ url: p.img, sortOrder: 1 }] }
             },
         });
     }
 
     // ==========================================
-    // 7. ADDRESSES, ORDERS, & CART
+    // 7. BESTSELLER ORDERS
     // ==========================================
-    console.log("⏳ Seeding Customer Address & Orders...");
+    console.log("⏳ Seeding Realistic Bestseller Orders...");
     const address = await prisma.address.create({
         data: {
-            userId: customer.id, type: "HOME", isDefault: true,
-            fullName: "Rahul Customer", phoneNumber: "9000000003",
-            line1: "Flat 402, Royal Apartments", line2: "Near Park", landmark: "Big Bazaar",
-            district: "Indore", state: "Madhya Pradesh", pincode: "452001"
+            userId: customer.id, type: "HOME", isDefault: true, fullName: "Rahul Customer", phoneNumber: "9000000003",
+            line1: "Flat 402", district: "Hyderabad", state: "Telangana", pincode: "500001"
         },
     });
 
-    const sampleProduct = dbProducts["w-alphonso-mango"];
-
-    const order = await prisma.order.create({
-        data: {
-            userId: customer.id, addressId: address.id, productId: sampleProduct.id,
-            status: "DELIVERED", quantity: 1,
-            unitPrice: sampleProduct.sellingPrice,
-            totalAmount: sampleProduct.sellingPrice,
-            notes: "Please deliver safely."
-        },
-    });
-
-    console.log("⏳ Seeding Cart & Wishlist...");
-    const cart = await prisma.cart.upsert({
-        where: { userId: customer.id },
-        update: {},
-        create: { userId: customer.id },
-    });
-
-    await prisma.cartItem.create({
-        data: { cartId: cart.id, productId: dbProducts["n-basmati-rice"].id, quantity: 2 }
-    });
-
-    await prisma.wishlist.createMany({
-        data: [
-            { userId: customer.id, productId: dbProducts["n-wooden-elephant"].id },
-            { userId: customer.id, productId: dbProducts["s-coconut-oil"].id }
-        ]
-    });
-
-    // ==========================================
-    // 8. REVIEWS & MARKETING
-    // ==========================================
-    console.log("⏳ Seeding Reviews & Marketing...");
-    await prisma.review.create({
-        data: {
-            userId: customer.id, productId: sampleProduct.id, rating: 5,
-            comment: "Absolutely amazing quality! Highly recommended.", wouldRecommend: true,
-        }
-    });
-
-    await prisma.banner.create({
-        data: { imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836", link: "/promos", sortOrder: 1, isActive: true }
-    });
-
-    await prisma.coupon.upsert({
-        where: { code: "WELCOME50" },
-        update: {},
-        create: { code: "WELCOME50", description: "Flat 50% Off", discountType: "PERCENTAGE", discountValue: 50, minOrderAmount: 200, maxDiscount: 100, isActive: true, usageLimit: 100 }
-    });
-
-    await prisma.testimonial.create({
-        data: { customerName: "Anita Rao", reviewText: "Zoyka changed how I buy local authentic products!", rating: 5, sortOrder: 1 }
-    });
-
-    // ==========================================
-    // 9. SYSTEM SETTINGS & FINANCE
-    // ==========================================
-    console.log("⏳ Seeding System Settings & Finance...");
-
-    await prisma.productionBatch.create({
-        data: { outletId: dbOutlets["OUT-W-FARM"].id, title: "Mango Sorting Batch 1", unitCount: 100, qualityStatus: "APPROVED", isApproved: true }
-    });
-
-    await prisma.payout.create({
-        data: { outletId: dbOutlets["OUT-W-FARM"].id, ordersCount: 50, grossAmount: 60000, commission: 6000, amount: 54000, status: "COMPLETED" }
-    });
-
-    const defaultSettings = [
-        { category: "General Setting", key: "platformName", value: "Zoyka" },
-        { category: "General Setting", key: "supportEmail", value: "support@zoyka.com" },
-        { category: "Account Information", key: "fullName", value: "Super Admin" },
-        { category: "Account Information", key: "phone", value: "+911234568465" }
+    // Generate sales data using our new slugs!
+    const bestsellerSalesData = [
+        { slug: "010-elephant", qty: 45 },      
+        { slug: "007-peacock", qty: 30 },    
+        { slug: "001-hen-with-chickens", qty: 25 },      
+        { slug: "005-women-pot", qty: 18 },       
+        { slug: "002-sparrow", qty: 10 },   
     ];
 
-    for (const setting of defaultSettings) {
-        await prisma.settingConfig.upsert({
-            where: { key: setting.key },
-            update: { value: setting.value, category: setting.category },
-            create: setting
+    for (const sale of bestsellerSalesData) {
+        const product = dbProducts[sale.slug];
+        await prisma.order.create({
+            data: {
+                userId: customer.id, addressId: address.id, productId: product.id,
+                status: "DELIVERED", quantity: sale.qty,
+                unitPrice: product.sellingPrice, totalAmount: product.sellingPrice * sale.qty,
+                notes: "Bestseller aggregation logic seed"
+            },
+        });
+
+        await prisma.review.create({
+            data: {
+                userId: customer.id, productId: product.id, rating: 5,
+                comment: "Authentic Poniki craft! Highly recommended.", wouldRecommend: true,
+            }
         });
     }
 
     console.log("\n✅ MASTER SEED COMPLETED SUCCESSFULLY! 🎉");
-    console.log(`Everything is perfectly synchronized! Outlets now have 1-to-1 Manager assignments!`);
 };
 
 main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+    .catch((e) => { console.error(e); process.exit(1); })
+    .finally(async () => { await prisma.$disconnect(); });
