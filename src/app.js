@@ -12,10 +12,15 @@ import { verifyHandshakeKey } from "./middleware/handshake.middleware.js";
 const app = express();
 
 app.use(cors());
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+	contentSecurityPolicy: false,
+	crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(compression());
 app.use(express.json());
 app.use(morgan("dev"));
+
+app.use("/uploads", express.static("public/uploads"));
 
 app.get("/api/health", (req, res) => {
 	res.json({ status: "Zoyka backend is running 🔥" });

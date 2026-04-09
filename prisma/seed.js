@@ -38,8 +38,8 @@ const main = async () => {
     // ==========================================
     console.log("⏳ Seeding Departments, Categories & Regions...");
     const dept = await prisma.department.upsert({
-        where: { name: "Artisan Hub" },
-        update: {}, create: { name: "Artisan Hub", slug: "artisan-hub", description: "Handcrafted artisan products", isActive: true },
+        where: { name: "Artisan's Touch" },
+        update: {}, create: { name: "Artisan's Touch", slug: "artisans-touch", description: "Handcrafted artisan products", isActive: true },
     });
 
     const category = await prisma.category.upsert({
@@ -58,11 +58,11 @@ const main = async () => {
     console.log("⏳ Seeding Outlet...");
     const outlet = await prisma.outlet.upsert({
         where: { key: "OUT-PONIKI-TOYS" },
-        update: {}, 
+        update: {},
         create: {
             key: "OUT-PONIKI-TOYS", name: "Kondapalli Wooden Crafts", description: "Authentic Poniki wood creations",
             address: "Main Market, Kondapalli", monthlyCapacity: 500, qualityScore: 4.9,
-            ownerId: dbUsers["poniki_artisan@zoyka.com"].id, departmentId: dept.id, regionId: region.id, 
+            ownerId: dbUsers["poniki_artisan@zoyka.com"].id, departmentId: dept.id, regionId: region.id,
             managerId: dbUsers["manager_s_art@zoyka.com"].id, location: "Kondapalli", noOfArtisans: 15
         },
     });
@@ -71,7 +71,7 @@ const main = async () => {
     // 6. REAL PRODUCTS (Linked to Local Images!)
     // ==========================================
     console.log("⏳ Seeding 10 Real Products with Local Image Paths...");
-    
+
     // I added a 20% markup to generate an "Actual Price" so the frontend can show a discount!
     const productsData = [
         { code: "001", title: "Hen with Chickens (Kodi pillalu)", slug: "001-hen-with-chickens", sellingPrice: 240, actualPrice: 300, desc: "Size: 4x3x4 cm. Waiting Period: 15 days. Colors: 1.", special: "Made With Poniki Wood. Efforts of 30 days. Artist: B. Shekar (30+ Yrs Exp).", img: "/uploads/products/001-hen-with-chickens.jpg" },
@@ -95,7 +95,7 @@ const main = async () => {
                 title: p.title, slug: p.slug, description: p.desc,
                 specialFeatures: p.special, material: "Poniki Wood", actualPrice: p.actualPrice,
                 sellingPrice: p.sellingPrice, stock: 50, averageRating: 4.8, totalRatingsCount: 120,
-                outletId: outlet.id, categoryId: category.id, artisanId: dbUsers["poniki_artisan@zoyka.com"].id, 
+                outletId: outlet.id, categoryId: category.id, artisanId: dbUsers["poniki_artisan@zoyka.com"].id,
                 images: { create: [{ url: p.img, sortOrder: 1 }] }
             },
         });
@@ -114,11 +114,11 @@ const main = async () => {
 
     // Generate sales data using our new slugs!
     const bestsellerSalesData = [
-        { slug: "010-elephant", qty: 45 },      
-        { slug: "007-peacock", qty: 30 },    
-        { slug: "001-hen-with-chickens", qty: 25 },      
-        { slug: "005-women-pot", qty: 18 },       
-        { slug: "002-sparrow", qty: 10 },   
+        { slug: "010-elephant", qty: 45 },
+        { slug: "007-peacock", qty: 30 },
+        { slug: "001-hen-with-chickens", qty: 25 },
+        { slug: "005-women-pot", qty: 18 },
+        { slug: "002-sparrow", qty: 10 },
     ];
 
     for (const sale of bestsellerSalesData) {
