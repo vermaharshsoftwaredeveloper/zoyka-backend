@@ -20,7 +20,7 @@ app.use(compression());
 app.use(express.json());
 app.use(morgan("dev"));
 
-app.use("/uploads", express.static("public/uploads"));
+app.use("/api/uploads", express.static("public/uploads"));
 
 app.get("/api/health", (req, res) => {
 	res.json({ status: "Zoyka backend is running 🔥" });
