@@ -1,0 +1,479 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+  MANAGER
+  PRODUCER
+  ARTISAN
+  FARMER
+  KITCHEN
+}
+
+enum OtpPurpose {
+  SIGNUP
+  LOGIN
+}
+
+enum AddressType {
+  HOME
+  WORK
+  OTHER
+}
+
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  PACKED
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+model Outlet {
+  id          String    @id @default(uuid())
+  key         String    @unique
+  name        String
+  description String?
+  imageUrl    String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  monthlyCapacity Int?
+  qualityScore    Float?  @default(0)
+  address         String?
+  location        String?
+
+  noOfArtisans Int?
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  ownerId String?
+  owner   User?   @relation("OutletOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  managerId String? @unique
+  manager   User?   @relation("OutletManager", fields: [managerId], references: [id], onDelete: SetNull)
+
+  regionId String?
+  region   Region? @relation(fields: [regionId], references: [id], onDelete: SetNull)
+
+  productionBatches ProductionBatch[]
+  payouts           Payout[]
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  artisansCount Int? @default(0)
+
+  @@index([isActive])
+  @@index([regionId])
+  @@index([ownerId])
+  @@index([departmentId])
+}
+
+model Testimonial {
+  id               String   @id @default(uuid())
+  customerName     String
+  customerImageUrl String?
+  reviewText       String
+  rating           Int
+  isActive         Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model Coupon {
+  id             String       @id @default(uuid())
+  code           String       @unique
+  description    String?
+  discountType   DiscountType
+  discountValue  Float
+  minOrderAmount Float?
+  maxDiscount    Float?
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  usageLimit     Int?
+  usedCount      Int          @default(0)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([expiresAt])
+}
+
+model Banner {
+  id        String   @id @default(uuid())
+  imageUrl  String
+  link      String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model User {
+  id                String      @id @default(uuid())
+  email             String      @unique
+  password          String
+  createdAt         DateTime    @default(now())
+  isEmailVerified   Boolean     @default(false)
+  mobile            String      @unique
+  name              String
+  updatedAt         DateTime    @updatedAt
+  avatar            String?
+  role              Role        @default(USER)
+  otp               String?
+  otpExpiry         DateTime?
+  otpPurpose        OtpPurpose?
+  refreshToken      String?
+  yearsOfExperience Int?
+  location          String?
+  isActive          Boolean     @default(true)
+  joiningDate       DateTime    @default(now())
+  bankAccountNo     String?
+  bankName          String?
+  bankIfscCode      String?
+
+  addresses      Address[]
+  bulkInquiries  BulkOrderInquiry[]
+  cart           Cart?
+  contactQueries ContactUsQuery[]
+  orders         Order[]
+  helpRequests   PaymentDeliveryHelpRequest[]
+  reviews        Review[]
+  wishlist       Wishlist[]
+  managedOutlet  Outlet?                      @relation("OutletManager")
+
+  productsAsArtisan Product[] @relation("ProductArtisan")
+  ownedOutlets      Outlet[]  @relation("OutletOwner")
+
+  @@index([isEmailVerified])
+}
+
+model Product {
+  id          String  @id @default(uuid())
+  title       String
+  slug        String  @unique
+  description String?
+
+  specialFeatures String? @db.Text
+  material        String?
+
+  actualPrice  Float
+  sellingPrice Float
+  stock        Int   @default(0)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  outletId String?
+  outlet   Outlet? @relation(fields: [outletId], references: [id], onDelete: SetNull)
+
+  artisanId String
+  artisan   User   @relation("ProductArtisan", fields: [artisanId], references: [id], onDelete: Restrict)
+
+  images    ProductImage[]
+  reviews   Review[]
+  wishlist  Wishlist[]
+  cartItems CartItem[]
+  orders    Order[]
+
+  averageRating     Float    @default(0)
+  totalRatingsCount Int      @default(0)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([outletId, slug])
+  @@index([outletId])
+  @@index([artisanId])
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model Review {
+  id             String        @id @default(uuid())
+  userId         String
+  productId      String
+  rating         Int
+  comment        String?
+  wouldRecommend Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  product        Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images         ReviewImage[]
+
+  @@index([userId])
+  @@index([productId])
+}
+
+model ContactUsQuery {
+  id        String   @id @default(uuid())
+  userId    String?
+  name      String
+  email     String
+  phone     String
+  message   String
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model BulkOrderInquiry {
+  id                String   @id @default(uuid())
+  userId            String?
+  fullName          String
+  companyName       String
+  email             String
+  phoneNumber       String
+  quantityRequired  Int
+  city              String
+  state             String
+  pincode           String
+  additionalDetails String?
+  createdAt         DateTime @default(now())
+  user              User?    @relation(fields: [userId], references: [id])
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model PaymentDeliveryHelpRequest {
+  id                String   @id @default(uuid())
+  userId            String?
+  referenceId       String
+  additionalDetails String
+  createdAt         DateTime @default(now())
+  user              User?    @relation(fields: [userId], references: [id])
+
+  @@index([referenceId])
+  @@index([createdAt])
+}
+
+model ReviewImage {
+  id        String   @id @default(uuid())
+  reviewId  String
+  url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+}
+
+model Address {
+  id          String      @id @default(uuid())
+  userId      String
+  type        AddressType @default(HOME)
+  isDefault   Boolean     @default(false)
+  fullName    String
+  phoneNumber String
+  line1       String
+  line2       String?
+  landmark    String?
+  district    String
+  state       String
+  pincode     String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders      Order[]
+
+  @@index([userId])
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  productId String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  userId      String
+  addressId   String
+  productId   String
+  status      OrderStatus @default(PLACED)
+  quantity    Int
+  unitPrice   Float
+  totalAmount Float
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  address     Address     @relation(fields: [addressId], references: [id])
+  product     Product     @relation(fields: [productId], references: [id])
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([addressId])
+  @@index([productId])
+  @@index([status])
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FLAT
+}
+
+model Region {
+  id       String  @id @default(uuid())
+  name     String  @unique
+  isActive Boolean @default(true)
+
+  state    String
+  district String
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  regionHead String?
+
+  outlets Outlet[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, district])
+}
+
+model Category {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean @default(true)
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  products Product[]
+  outlets  Outlet[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([departmentId])
+}
+
+model ProductionBatch {
+  id            String   @id @default(uuid())
+  outletId      String
+  outlet        Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  title         String?
+  unitCount     Int
+  qualityStatus String   @default("PENDING")
+  isApproved    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([outletId])
+}
+
+model Payout {
+  id       String @id @default(uuid())
+  outletId String
+  outlet   Outlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
+
+  ordersCount Int   @default(0)
+  grossAmount Float @default(0)
+  commission  Float @default(0)
+  amount      Float @default(0)
+
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([outletId])
+}
+
+model SettingConfig {
+  id        String   @id @default(uuid())
+  category  String
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+}
+
+model Department {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+
+  categories Category[]
+  regions    Region[]
+  outlets    Outlet[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
