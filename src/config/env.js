@@ -2,7 +2,7 @@ import "dotenv/config";
 
 export const NODE_ENV = process.env.NODE_ENV || "development";
 
-export const PORT = process.env.PORT || 3000;
+export const PORT = process.env.PORT || 3001;
 
 const DEFAULT_API_BASE_URL =
 	NODE_ENV === "production" ? "https://zoyka-backend.onrender.com" : `http://localhost:${PORT}`;
@@ -29,3 +29,13 @@ export const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 
 // Handshake Key Configuration
 export const HANDSHAKE_KEY = process.env.HANDSHAKE_KEY || "Zoyka_Super_Secret_Key_2026";
+
+// Cashfree Payment Configuration
+export const CASHFREE_ENVIRONMENT = process.env.CASHFREE_ENVIRONMENT || "sandbox";
+export const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID || "";
+export const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY || "";
+export const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || "http://localhost:5173";
+
+// Google OAuth Configuration
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;

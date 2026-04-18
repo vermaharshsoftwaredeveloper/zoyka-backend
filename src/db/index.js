@@ -2,10 +2,14 @@ import prisma from "../config/prisma.js";
 
 export const connectDB = async () => {
   try {
-    await prisma.$connect();
-    console.log("Connected to the database successfully.");
+    // We remove $connect() and process.exit
+    // We just do a simple ping to verify the connection
+    await prisma.$queryRaw`SELECT 1`;
+    console.log("Database connection verified successfully.");
   } catch (error) {
-    console.error("Error connecting to the database:", error);
-    process.exit(1);
+    console.error("Database connection verification failed:", error);
+    // DO NOT process.exit(1) here! 
+    // Just let the error flow so Lambda stays alive to show us the log.
+    throw error;
   }
 };

@@ -56,29 +56,89 @@ const getRankedProductsByIds = async (productIds) => {
   return productIds.map((id) => productMap.get(id)).filter(Boolean);
 };
 
-export const listProductsService = async ({ categorySlug, search, page, limit }) => {
+export const listProductsService = async ({
+  categorySlug, departmentId, search, page, limit,
+  regionId, outletId, material, use, special,
+  minPrice, maxPrice, sortBy,
+}) => {
   const where = { isActive: true };
 
   if (categorySlug) {
     where.category = { slug: categorySlug, isActive: true };
   }
 
-  if (search) {
-    where.OR = [
-      { title: { contains: search, mode: "insensitive" } },
-      { description: { contains: search, mode: "insensitive" } },
-      { specialFeatures: { contains: search, mode: "insensitive" } }
-    ];
+  if (departmentId) {
+    where.category = { ...where.category, departmentId };
   }
+
+  if (regionId) {
+    where.outlet = { ...where.outlet, regionId };
+  }
+
+  if (outletId) {
+    where.outletId = outletId;
+  }
+
+  if (material?.length) {
+    where.material = { in: material, mode: "insensitive" };
+  }
+
+  if (use?.length) {
+    where.specialFeatures = { in: use, mode: "insensitive" };
+  }
+
+  if (special?.length) {
+    const specialConditions = [];
+    if (special.includes("Bestseller")) {
+      specialConditions.push({ totalRatingsCount: { gte: 5 } });
+    }
+    if (special.includes("New")) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      specialConditions.push({ createdAt: { gte: thirtyDaysAgo } });
+    }
+    if (special.includes("Innovative")) {
+      specialConditions.push({
+        specialFeatures: { not: null },
+      });
+    }
+    if (specialConditions.length) {
+      where.AND = [...(where.AND || []), { OR: specialConditions }];
+    }
+  }
+
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    where.sellingPrice = {};
+    if (minPrice !== undefined) where.sellingPrice.gte = minPrice;
+    if (maxPrice !== undefined) where.sellingPrice.lte = maxPrice;
+  }
+
+  if (search) {
+    where.AND = [...(where.AND || []), {
+      OR: [
+        { title: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+        { specialFeatures: { contains: search, mode: "insensitive" } },
+      ],
+    }];
+  }
+
+  // Sorting
+  let orderBy = { createdAt: "desc" };
+  if (sortBy === "price_asc") orderBy = { sellingPrice: "asc" };
+  else if (sortBy === "price_desc") orderBy = { sellingPrice: "desc" };
+  else if (sortBy === "rating") orderBy = { averageRating: "desc" };
+  else if (sortBy === "popularity") orderBy = { totalRatingsCount: "desc" };
 
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: { createdAt: "desc" },
+      orderBy,
       include: {
         category: { select: { id: true, slug: true, name: true } },
+        outlet: { select: { id: true, name: true, region: { select: { id: true, name: true } } } },
         images: { orderBy: { sortOrder: "asc" } },
         reviews: { select: { rating: true } },
       },
@@ -91,6 +151,68 @@ export const listProductsService = async ({ categorySlug, search, page, limit })
     page,
     limit,
     total,
+  };
+};
+
+export const getFilterOptionsService = async ({ departmentId } = {}) => {
+  const where = { isActive: true };
+  if (departmentId) {
+    where.category = { departmentId };
+  }
+
+  const products = await prisma.product.findMany({
+    where,
+    select: {
+      material: true,
+      specialFeatures: true,
+      sellingPrice: true,
+      outlet: {
+        select: {
+          region: { select: { id: true, name: true } },
+        },
+      },
+    },
+  });
+
+  // Regions from product outlets
+  const regionMap = new Map();
+  for (const p of products) {
+    const region = p.outlet?.region;
+    if (region) regionMap.set(region.id, region.name);
+  }
+  const regions = Array.from(regionMap, ([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  // Materials
+  const materialSet = new Set();
+  for (const p of products) {
+    if (p.material) materialSet.add(p.material);
+  }
+  const materials = Array.from(materialSet).sort();
+
+  // Uses (specialFeatures)
+  const useSet = new Set();
+  for (const p of products) {
+    if (p.specialFeatures) useSet.add(p.specialFeatures);
+  }
+  const uses = Array.from(useSet).sort();
+
+  // Price ranges
+  const prices = products.map((p) => p.sellingPrice).filter(Boolean);
+  const maxProductPrice = prices.length ? Math.max(...prices) : 0;
+  const priceRanges = [];
+  if (maxProductPrice > 0) {
+    priceRanges.push({ label: "Under ₹500", min: 0, max: 500 });
+    if (maxProductPrice > 500) priceRanges.push({ label: "₹500 - ₹1000", min: 500, max: 1000 });
+    if (maxProductPrice > 1000) priceRanges.push({ label: "₹1000+", min: 1000, max: null });
+  }
+
+  return {
+    regions,
+    materials,
+    uses,
+    priceRanges,
+    specials: ["Innovative", "Bestseller", "New"],
   };
 };
 
@@ -110,6 +232,24 @@ export const getProductByIdService = async (productId) => {
           images: { orderBy: { sortOrder: "asc" }, select: { id: true, url: true } },
         },
         orderBy: { createdAt: "desc" },
+      },
+      outlet: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          imageUrl: true,
+          address: true,
+          location: true,
+        },
+      },
+      artisan: {
+        select: {
+          id: true,
+          name: true,
+          avatar: true,
+          role: true,
+        },
       },
     },
   });
@@ -131,6 +271,8 @@ export const getProductByIdService = async (productId) => {
     category: product.category,
     images: product.images,
     reviews: product.reviews,
+    outlet: product.outlet,
+    artisan: product.artisan,
     ...ratingSummary,
   };
 };
@@ -209,28 +351,29 @@ const mergeScoreMap = (target, source) => {
 };
 
 export const getTopPicksForUserService = async ({ userId, limit }) => {
-  // 🔥 Removed 'district' from all selects
-  const [orders, wishlist, cart, reviews] = await Promise.all([
-    prisma.order.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
-    prisma.wishlist.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
-    prisma.cart.findUnique({ where: { userId }, select: { items: { select: { product: { select: { id: true, outletId: true } } } } } }),
-    prisma.review.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
-  ]);
+  let outletScore = new Map();
+  let excludedProducts = new Set();
 
-  const outletScore = new Map();
-  const excludedProducts = new Set();
+  if (userId) {
+    const [orders, wishlist, cart, reviews] = await Promise.all([
+      prisma.order.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
+      prisma.wishlist.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
+      prisma.cart.findUnique({ where: { userId }, select: { items: { select: { product: { select: { id: true, outletId: true } } } } } }),
+      prisma.review.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
+    ]);
 
-  const sources = [
-    buildPreferenceMap(orders, 3),
-    buildPreferenceMap(wishlist, 2),
-    buildPreferenceMap(cart?.items || [], 2),
-    buildPreferenceMap(reviews, 1),
-  ];
+    const sources = [
+      buildPreferenceMap(orders, 3),
+      buildPreferenceMap(wishlist, 2),
+      buildPreferenceMap(cart?.items || [], 2),
+      buildPreferenceMap(reviews, 1),
+    ];
 
-  for (const source of sources) {
-    mergeScoreMap(outletScore, source.outletMap);
-    for (const productId of source.excludedProducts) {
-      excludedProducts.add(productId);
+    for (const source of sources) {
+      mergeScoreMap(outletScore, source.outletMap);
+      for (const productId of source.excludedProducts) {
+        excludedProducts.add(productId);
+      }
     }
   }
 
@@ -326,7 +469,7 @@ export const getSimilarProductsService = async (productId, limit = 6) => {
         id: true,
         categoryId: true,
         outletId: true,
-        // district: true,
+        district: true,
       },
     });
 

@@ -1,8 +1,11 @@
 import prisma from "../../config/prisma.js";
 
-export const getAllOutletsService = async () => {
+export const getAllOutletsService = async ({ regionId } = {}) => {
+  const where = { isActive: true };
+  if (regionId) where.regionId = regionId;
+
   return prisma.outlet.findMany({
-    where: { isActive: true },
+    where,
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -10,6 +13,7 @@ export const getAllOutletsService = async () => {
       name: true,
       description: true,
       imageUrl: true,
+      region: { select: { id: true, name: true } },
     },
   });
 };

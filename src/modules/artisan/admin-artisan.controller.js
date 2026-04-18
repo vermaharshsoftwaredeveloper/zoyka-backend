@@ -3,6 +3,13 @@ import ApiError from "../../utils/api-error/index.js";
 import * as adminArtisanService from "./admin-artisan.service.js";
 import { createArtisanSchema, updateArtisanSchema, getArtisansQuerySchema } from "./admin-artisan.validation.js";
 
+export const checkUser = asyncHandler(async (req, res) => {
+    const { email, mobile } = req.query;
+    const user = await adminArtisanService.checkUserByEmailOrMobileService({ email, mobile });
+    if (!user) return res.status(200).json({ success: true, exists: false });
+    return res.status(200).json({ success: true, exists: true, user });
+});
+
 const parseSchema = (schema, data) => {
     const parsed = schema.safeParse(data);
     if (!parsed.success) throw new ApiError(400, parsed.error.issues[0]?.message);
@@ -25,6 +32,11 @@ export const updateArtisan = asyncHandler(async (req, res) => {
     const payload = parseSchema(updateArtisanSchema, req.body);
     const updatedArtisan = await adminArtisanService.updateArtisanService(req.params.id, payload);
     res.status(200).json({ success: true, message: "Artisan updated successfully", data: updatedArtisan });
+});
+
+export const deleteArtisan = asyncHandler(async (req, res) => {
+    await adminArtisanService.deleteArtisanService(req.params.id);
+    res.status(200).json({ success: true, message: "Artisan deleted successfully", data: { id: req.params.id } });
 });
 
 export const toggleArtisanStatus = asyncHandler(async (req, res) => {

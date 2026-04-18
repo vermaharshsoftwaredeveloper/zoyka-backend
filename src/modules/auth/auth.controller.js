@@ -72,3 +72,16 @@ export const createStaff = asyncHandler(async (req, res) => {
   const response = await authService.createStaffService(payload);
   res.status(201).json(response);
 });
+
+export const refreshToken = asyncHandler(async (req, res) => {
+  const { refreshToken } = req.body;
+  const response = await authService.refreshTokenService(refreshToken);
+  res.status(200).json(response);
+});
+
+export const googleAuth = asyncHandler(async (req, res) => {
+  const { accessToken } = req.body;
+  if (!accessToken) throw new ApiError(400, "Google access token is required");
+  const response = await authService.googleAuthService({ accessToken });
+  res.status(200).json(response);
+});

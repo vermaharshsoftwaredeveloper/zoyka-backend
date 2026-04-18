@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 const uuidSchema = z.string().uuid("Invalid UUID");
+const requiredUuidSchema = z.string({
+  required_error: "ID is required",
+  invalid_type_error: "ID must be a string",
+}).uuid("Invalid UUID");
 
 export const filteredOrdersQuerySchema = z.object({
   outletId: uuidSchema.optional(),
@@ -59,16 +63,17 @@ const imageUrlsSchema = z.array(z.string().trim().url()).max(10);
 
 export const createOutletProductSchema = z.object({
   // outletId: uuidSchema.optional(),
-  artisanId: uuidSchema,
-  categoryId: uuidSchema,
+  artisanId: requiredUuidSchema,
+  categoryId: requiredUuidSchema,
 
-  title: z.string().trim().min(2).max(160),
+  title: z.string({ required_error: "Title is required", invalid_type_error: "Title must be a string" }).trim().min(2).max(160),
   slug: z
     .string()
     .trim()
     .min(2)
     .max(180)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug must be lowercase kebab-case"),
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug must be lowercase kebab-case")
+    .optional(),
   description: z.string().trim().max(4000).optional(),
 
   specialFeatures: z.string().trim().max(2000).optional(),

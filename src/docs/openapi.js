@@ -14,12 +14,13 @@ const openApiSpec = {
       description: NODE_ENV === "production" ? "Production" : "Local development",
     },
     {
-      url: "https://zoyka-backend.onrender.com",
+      url: "https://6wfvngphdv7bvj25ntybxpjs7m0bgxqe.lambda-url.eu-north-1.on.aws",
       description: "Production Server",
     }
   ],
   tags: [
     { name: "Health" },
+    { name: "Upload" },
     { name: "Auth" },
     { name: "Admin" },
     { name: "Categories" },
@@ -906,6 +907,32 @@ const openApiSpec = {
           },
         },
       },
+    },
+    "/api/upload": {
+      post: {
+        tags: ["Upload"],
+        summary: "Upload a file/image globally and get the public URL back",
+        security: [{ bearerAuth: [], ApiKeyAuth: [] }],
+        parameters: [
+          { name: "folder", in: "query", schema: { type: "string", default: "general" }, description: "Optional folder name (e.g., products, avatars, banners)" }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "multipart/form-data": {
+              schema: {
+                type: "object",
+                properties: {
+                  file: { type: "string", format: "binary" }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: "File uploaded successfully. Returns the public URL." }
+        }
+      }
     },
     "/api/auth/create-staff": {
       post: {

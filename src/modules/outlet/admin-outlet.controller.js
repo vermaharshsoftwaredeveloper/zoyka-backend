@@ -32,6 +32,11 @@ export const toggleOutletStatus = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, message: `Producer is now ${updatedOutlet.isActive ? 'Active' : 'Inactive'}` });
 });
 
+export const deleteOutlet = asyncHandler(async (req, res) => {
+    const deletedOutlet = await adminOutletService.deleteOutletService(req.params.id);
+    res.status(200).json({ success: true, message: "Outlet deleted successfully", data: deletedOutlet });
+});
+
 export const getOutletById = asyncHandler(async (req, res) => {
     const outlet = await adminOutletService.getOutletByIdAdminService(req.params.id);
     res.status(200).json({ success: true, data: outlet });

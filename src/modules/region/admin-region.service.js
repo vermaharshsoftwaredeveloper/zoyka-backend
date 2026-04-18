@@ -35,6 +35,15 @@ export const getAllRegionsAdminService = async (filters) => {
 };
 
 export const createRegionService = async (data) => {
+    if (!data.departmentId) {
+        throw new ApiError(400, "Department is required for a region.");
+    }
+
+    const department = await prisma.department.findUnique({ where: { id: data.departmentId } });
+    if (!department) {
+        throw new ApiError(400, "Invalid department selected.");
+    }
+
     const existingRegion = await prisma.region.findUnique({ where: { name: data.name } });
     if (existingRegion) throw new ApiError(400, "Region with this name already exists.");
 
@@ -50,6 +59,13 @@ export const updateRegionService = async (id, data) => {
     if (data.name && data.name !== region.name) {
         const conflict = await prisma.region.findUnique({ where: { name: data.name } });
         if (conflict) throw new ApiError(400, "Another region with this name already exists.");
+    }
+
+    if (data.departmentId) {
+        const department = await prisma.department.findUnique({ where: { id: data.departmentId } });
+        if (!department) {
+            throw new ApiError(400, "Invalid department selected.");
+        }
     }
 
     return await prisma.region.update({

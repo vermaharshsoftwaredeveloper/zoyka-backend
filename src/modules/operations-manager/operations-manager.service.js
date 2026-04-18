@@ -44,6 +44,13 @@ const ORDER_STATUS = {
   RETURN_PENDING: "CANCELLED",
 };
 
+const normalizeSlug = (text) =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+
 const toOrderCard = (order) => {
   return {
     id: order.id,
@@ -88,6 +95,17 @@ const ensureCategoryExists = async (categoryId) => {
 
   if (!category) {
     throw new ApiError(404, "Category not found");
+  }
+};
+
+const ensureArtisanExists = async (artisanId) => {
+  const artisan = await prisma.user.findFirst({
+    where: { id: artisanId, role: "ARTISAN" },
+    select: { id: true },
+  });
+
+  if (!artisan) {
+    throw new ApiError(404, "Artisan not found");
   }
 };
 
@@ -440,33 +458,53 @@ export const getOutletProductByIdService = async ({ user, outletId, productId })
 };
 
 export const createOutletProductService = async ({ user, payload }) => {
-  // 1. Fetch ALL outlets this specific manager/artisan controls automatically
+  // 1. Validate referenced IDs before hitting Prisma.
+  await Promise.all([
+    ensureCategoryExists(payload.categoryId),
+    ensureArtisanExists(payload.artisanId),
+  ]);
+
+  // 2. Fetch ALL outlets this specific manager/artisan controls automatically
   const availableOutletIds = await getManagedOutletIds({ userId: user.id, role: user.role });
 
   if (availableOutletIds.length === 0) {
     throw new ApiError(403, "You do not have access to any outlets to create products.");
   }
-  if (availableOutletIds.length > 1) {
-    throw new ApiError(400, "You manage multiple outlets. Please contact support for multi-outlet product creation.");
+
+  // 3. If outletId is provided, ensure the user has access to it.
+  let targetOutletId = availableOutletIds[0];
+  if (payload.outletId) {
+    if (!availableOutletIds.includes(payload.outletId)) {
+      throw new ApiError(403, "You are not authorized to create a product for the selected outlet.");
+    }
+    targetOutletId = payload.outletId;
+  } else if (availableOutletIds.length > 1) {
+    throw new ApiError(400, "You manage multiple outlets. Please select an outlet to create the product for.");
   }
 
-  // 2. Safely grab their single assigned outlet
-  const targetOutletId = availableOutletIds[0];
+  const productSlug = payload.slug ? payload.slug.trim() : normalizeSlug(payload.title);
+
+  if (!productSlug) {
+    throw new ApiError(400, "Product slug is required or could not be generated from title.");
+  }
 
   try {
     return await prisma.$transaction(async (tx) => {
       return await tx.product.create({
         data: {
-          outletId: targetOutletId, // 🔥 Smart Auto-Assignment!
+          outletId: targetOutletId,
           artisanId: payload.artisanId,
           categoryId: payload.categoryId,
           title: payload.title,
-          slug: payload.slug,
+          slug: productSlug,
           description: payload.description,
           specialFeatures: payload.specialFeatures,
           material: payload.material,
           actualPrice: payload.actualPrice,
           sellingPrice: payload.sellingPrice,
+          district: payload.district,
+          producerName: payload.producerName,
+          producerStory: payload.producerStory,
           stock: payload.stock,
           isActive: payload.isActive,
           ...(payload.images && payload.images.length > 0

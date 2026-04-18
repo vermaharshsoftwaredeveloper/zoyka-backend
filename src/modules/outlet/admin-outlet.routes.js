@@ -3,6 +3,7 @@ import {
     getAllOutletsAdmin,
     createOutlet,
     updateOutlet,
+    deleteOutlet,
     toggleOutletStatus,
     getOutletById
 } from "./admin-outlet.controller.js";
@@ -17,5 +18,6 @@ router.post("/", createOutlet);
 router.get("/:id", getOutletById);
 router.patch("/:id", updateOutlet);
 router.patch("/:id/toggle-status", toggleOutletStatus);
+router.delete("/:id", deleteOutlet);
 
 export default router;

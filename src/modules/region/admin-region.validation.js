@@ -9,6 +9,7 @@ export const createRegionSchema = z.object({
   regionHead: z.string().trim().max(160).optional().nullable(),
   state: z.string().min(1),
   district: z.string().min(1),
+  departmentId: z.string().uuid("Invalid Department ID"),
 });
 
 export const updateRegionSchema = z.object({
@@ -16,4 +17,5 @@ export const updateRegionSchema = z.object({
   regionHead: z.string().trim().max(160).optional().nullable(),
   state: z.string().min(1).optional(),
   district: z.string().min(1).optional(),
+  departmentId: z.string().uuid("Invalid Department ID").optional(),
 });

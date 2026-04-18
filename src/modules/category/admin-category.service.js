@@ -22,14 +22,40 @@ export const createCategoryService = async (data) => {
 
     if (existingCategory) throw new ApiError(400, "Category with this name or slug already exists");
 
-    return await prisma.category.create({ data: { ...data, slug } });
+    if (data.departmentId) {
+      const department = await prisma.department.findUnique({ where: { id: data.departmentId } });
+      if (!department) throw new ApiError(400, "Department not found");
+    }
+
+    const createData = {
+      name: data.name,
+      slug,
+      description: data.description || null,
+      departmentId: data.departmentId || null,
+      isActive: data.isActive ?? true,
+    };
+
+    return await prisma.category.create({
+      data: createData,
+      include: {
+        department: true,
+        _count: { select: { products: true } },
+      },
+    });
 };
 
 export const updateCategoryService = async (id, data) => {
     const category = await prisma.category.findUnique({ where: { id } });
     if (!category) throw new ApiError(404, "Category not found");
 
-    const updateData = { ...data };
+    const updateData = {
+      name: data.name,
+      slug: data.slug,
+      description: data.description || null,
+      departmentId: data.departmentId || null,
+      isActive: data.isActive,
+    };
+
     if (data.name && !data.slug) updateData.slug = generateSlug(data.name);
 
     if (updateData.name || updateData.slug) {
@@ -45,7 +71,19 @@ export const updateCategoryService = async (id, data) => {
         if (conflict) throw new ApiError(400, "Name or slug already in use");
     }
 
-    return await prisma.category.update({ where: { id }, data: updateData });
+    if (updateData.departmentId) {
+      const department = await prisma.department.findUnique({ where: { id: updateData.departmentId } });
+      if (!department) throw new ApiError(400, "Department not found");
+    }
+
+    return await prisma.category.update({
+      where: { id },
+      data: updateData,
+      include: {
+        department: true,
+        _count: { select: { products: true } },
+      },
+    });
 };
 
 export const toggleCategoryStatusService = async (id) => {

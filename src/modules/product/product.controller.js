@@ -6,6 +6,7 @@ import {
   bestsellerLimitSchema,
   listProductsQuerySchema,
   topPicksQuerySchema,
+  filterOptionsQuerySchema,
 } from "./product.validation.js";
 import {
   getBestsellersByDepartmentService,
@@ -14,6 +15,7 @@ import {
   getTopPicksForUserService,
   getSimilarProductsService,
   listProductsService,
+  getFilterOptionsService,
 } from "./product.service.js";
 
 const parseQuery = (schema, query) => {
@@ -33,6 +35,13 @@ export const listProducts = asyncHandler(async (req, res) => {
   const response = await listProductsService(query);
 
   res.status(200).json({ message: "Products fetched successfully", ...response });
+});
+
+export const getFilterOptions = asyncHandler(async (req, res) => {
+  const query = parseQuery(filterOptionsQuerySchema, req.query);
+  const data = await getFilterOptionsService(query);
+
+  res.status(200).json({ message: "Filter options fetched successfully", data });
 });
 
 export const getProductById = asyncHandler(async (req, res) => {
@@ -63,7 +72,7 @@ export const getOutletBestsellers = asyncHandler(async (req, res) => {
 export const getTopPicksForUser = asyncHandler(async (req, res) => {
   const { limit } = parseQuery(topPicksQuerySchema, req.query);
 
-  const userId = req.user.id;
+  const userId = req.user?.id || null;
 
   const data = await getTopPicksForUserService({
     userId,

@@ -1,8 +1,9 @@
 import ApiError from "../../utils/api-error/index.js";
 import { asyncHandler } from "../../utils/async-handler/index.js";
-import { checkoutSchema } from "./order.validation.js";
+import { checkoutSchema, paymentConfirmSchema } from "./order.validation.js";
 import {
   checkoutCartService,
+  confirmCashfreePaymentService,
   getOrderByIdService,
   listOrdersService,
 } from "./order.service.js";
@@ -27,7 +28,26 @@ export const checkoutCart = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json({
-    message: "Checkout complete. Each cart item is placed as an independent order.",
+    message: "Checkout initiated successfully.",
+    data,
+  });
+});
+
+export const confirmPayment = asyncHandler(async (req, res) => {
+  const parsed = paymentConfirmSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    throw new ApiError(400, issue?.message || "Invalid payment confirmation request");
+  }
+
+  const data = await confirmCashfreePaymentService({
+    userId: req.user.id,
+    paymentSessionId: parsed.data.paymentSessionId,
+  });
+
+  res.status(200).json({
+    message: "Payment status confirmed successfully",
     data,
   });
 });

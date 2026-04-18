@@ -1,7 +1,7 @@
 import prisma from "../../config/prisma.js";
 import { comparePassword, hashPassword } from "./utils/password.utils.js";
 import ApiError from "../../utils/api-error/index.js";
-import { generateToken } from "../../utils/jwt/index.js";
+import { generateToken, verifyToken } from "../../utils/jwt/index.js";
 import { sendEmail } from "../../services/email.service.js";
 import { generateOtp, getOtpExpiry } from "./utils/otp.utils.js";
 
@@ -301,6 +301,81 @@ export const loginService = async ({ email, password }) => {
 
   return {
     message: "Login successful",
+    role: user.role,
+    ...tokens,
+  };
+};
+
+export const refreshTokenService = async (refreshToken) => {
+  if (!refreshToken) {
+    throw new ApiError(400, "Refresh token is required");
+  }
+
+  const payload = verifyToken(refreshToken);
+  const user = await prisma.user.findUnique({ where: { id: payload.id } });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (!user.refreshToken || user.refreshToken !== refreshToken) {
+    throw new ApiError(401, "Invalid refresh token");
+  }
+
+  const tokens = await issueAuthTokens(user);
+
+  return {
+    message: "Token refreshed",
+    role: user.role,
+    ...tokens,
+  };
+};
+
+export const googleAuthService = async ({ accessToken }) => {
+  // Use Google's userinfo API with the access token
+  const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!res.ok) {
+    throw new ApiError(401, "Invalid Google token");
+  }
+
+  const payload = await res.json();
+  if (!payload || !payload.email) {
+    throw new ApiError(401, "Invalid Google token payload");
+  }
+
+  const { sub: googleId, email, name, picture } = payload;
+
+  let user = await prisma.user.findUnique({ where: { email } });
+
+  if (user) {
+    // Existing user — link Google account if not already linked
+    if (!user.googleId) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { googleId, authProvider: "google", avatar: user.avatar || picture },
+      });
+    }
+  } else {
+    // New user — create account via Google
+    user = await prisma.user.create({
+      data: {
+        email,
+        name: name || email.split("@")[0],
+        googleId,
+        authProvider: "google",
+        avatar: picture,
+        isEmailVerified: true,
+      },
+    });
+  }
+
+  const tokens = await issueAuthTokens(user);
+
+  return {
+    message: "Google login successful",
     role: user.role,
     ...tokens,
   };

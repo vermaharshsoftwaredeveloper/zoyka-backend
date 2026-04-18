@@ -1,12 +1,12 @@
 import prisma from "../../config/prisma.js";
 import ApiError from "../../utils/api-error/index.js";
 
-const verifyProducerRole = async (ownerId) => {
-    if (!ownerId) return;
-    const user = await prisma.user.findUnique({ where: { id: ownerId } });
-    if (!user) throw new ApiError(404, "The specified user for Owner was not found.");
-    if (user.role !== 'PRODUCER' && user.role !== 'ADMIN') {
-        throw new ApiError(400, "The assigned owner must have a PRODUCER or ADMIN role.");
+const verifyManagerRole = async (managerId) => {
+    if (!managerId) return;
+    const user = await prisma.user.findUnique({ where: { id: managerId } });
+    if (!user) throw new ApiError(404, "The specified user for Manager was not found.");
+    if (user.role !== 'MANAGER' && user.role !== 'ADMIN') {
+        throw new ApiError(400, "The assigned manager must have a MANAGER or ADMIN role.");
     }
 };
 
@@ -82,6 +82,12 @@ export const toggleOutletStatusService = async (id) => {
         where: { id },
         data: { isActive: !outlet.isActive }
     });
+};
+
+export const deleteOutletService = async (id) => {
+    const outlet = await prisma.outlet.findUnique({ where: { id } });
+    if (!outlet) throw new ApiError(404, "Outlet not found");
+    return await prisma.outlet.delete({ where: { id } });
 };
 
 export const getOutletByIdService = async (id) => {
