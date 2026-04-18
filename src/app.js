@@ -9,7 +9,7 @@ import { errorHandler } from "./middleware/error.middleware.js";
 import openApiSpec from "./docs/openapi.js";
 import { verifyHandshakeKey } from "./middleware/handshake.middleware.js";
 import { generalLimiter } from "./middleware/rate-limit.middleware.js";
-import { NODE_ENV, FRONTEND_BASE_URL } from "./config/env.js";
+import { NODE_ENV, FRONTEND_BASE_URL, FRONTEND_BASE_URL2, DASHBOARD_BASE_URL, DASHBOARD_BASE_URL2 } from "./config/env.js";
 import prisma from "./config/prisma.js";
 
 const app = express();
@@ -20,6 +20,9 @@ app.set("trust proxy", 1);
 // CORS - restrict to known origins
 const allowedOrigins = [
 	FRONTEND_BASE_URL,
+	FRONTEND_BASE_URL2,
+	DASHBOARD_BASE_URL,
+	DASHBOARD_BASE_URL2,
 	"https://zoykah.com",
 	"https://www.zoykah.com",
 	"https://dashboard.zoykah.com",

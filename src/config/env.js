@@ -51,6 +51,9 @@ export const CASHFREE_ENVIRONMENT = process.env.CASHFREE_ENVIRONMENT || "sandbox
 export const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID || "";
 export const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY || "";
 export const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL || "http://localhost:5173";
+export const FRONTEND_BASE_URL2 = process.env.FRONTEND_BASE_URL2 || "http://localhost:5174";
+export const DASHBOARD_BASE_URL = process.env.DASHBOARD_BASE_URL || "http://localhost:5175";
+export const DASHBOARD_BASE_URL2 = process.env.DASHBOARD_BASE_URL2 || "http://localhost:5176";
 
 // Google OAuth Configuration
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;

@@ -81,6 +81,9 @@ check('.env has CASHFREE_ENVIRONMENT', fileContains(path.join(__dirname, '.env')
 check('.env has CASHFREE_APP_ID', fileContains(path.join(__dirname, '.env'), 'CASHFREE_APP_ID'));
 check('.env has CASHFREE_SECRET_KEY', fileContains(path.join(__dirname, '.env'), 'CASHFREE_SECRET_KEY'));
 check('.env has FRONTEND_BASE_URL', fileContains(path.join(__dirname, '.env'), 'FRONTEND_BASE_URL'));
+check('.env has FRONTEND_BASE_URL2', fileContains(path.join(__dirname, '.env'), 'FRONTEND_BASE_URL2'));
+check('.env has DASHBOARD_BASE_URL', fileContains(path.join(__dirname, '.env'), 'DASHBOARD_BASE_URL'));
+check('.env has DASHBOARD_BASE_URL2', fileContains(path.join(__dirname, '.env'), 'DASHBOARD_BASE_URL2'));
 
 // 5. Check documentation
 console.log('\n5. DOCUMENTATION');
@@ -106,7 +109,7 @@ check('Real-time webhook processing', fileContains(path.join(__dirname, 'src/mod
 check('Manual payment verification', fileContains(path.join(__dirname, 'src/modules/payment/cashfree.controller.js'), 'verifyPaymentStatus'));
 check('Stock reversal on failure', fileContains(path.join(__dirname, 'src/modules/payment/cashfree.controller.js'), 'stock: { increment'));
 check('Order status updates', fileContains(path.join(__dirname, 'src/modules/payment/cashfree.controller.js'), 'status: "PLACED"'));
-check('Payment status tracking', fileContains(path.join(__dirname, 'src/modules/payment/cashfree.controller.js'), 'paymentStatus')));
+check('Payment status tracking', fileContains(path.join(__dirname, 'src/modules/payment/cashfree.controller.js'), 'paymentStatus'));
 
 // Summary
 console.log('\n' + '='.repeat(60));

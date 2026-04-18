@@ -8,6 +8,9 @@ import {
   CASHFREE_ENVIRONMENT,
   CASHFREE_SECRET_KEY,
   FRONTEND_BASE_URL,
+  FRONTEND_BASE_URL2,
+  DASHBOARD_BASE_URL,
+  DASHBOARD_BASE_URL2,
 } from "../../config/env.js";
 
 const ORDER_STATUS_TIMELINE = [
@@ -69,7 +72,7 @@ const createCashfreeOrder = async ({ orderId, amount, customerDetails, returnUrl
     customer_name: customerDetails.name,
     customer_phone: customerDetails.phone,
   };
-  
+
   // Add email - this is important for fraud detection (Sardine)
   if (customerDetails.email) {
     customerDetailsObj.customer_email = customerDetails.email;
