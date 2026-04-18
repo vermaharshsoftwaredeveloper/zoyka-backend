@@ -22,7 +22,8 @@ const allowedOrigins = [
 	FRONTEND_BASE_URL,
 	"https://zoykah.com",
 	"https://www.zoykah.com",
-	"https://zoykah-dashboard.vercel.app",
+	"https://dashboard.zoykah.com",
+	"https://www.dashboard.zoykah.com",
 ];
 
 if (NODE_ENV !== "production") {
