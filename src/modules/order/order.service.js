@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import prisma from "../../config/prisma.js";
 import ApiError from "../../utils/api-error/index.js";
+import { createInvoiceForOrder } from "../invoice/invoice.service.js";
+import { validateCouponService, incrementCouponUsage } from "../coupon/coupon.service.js";
 import {
   CASHFREE_APP_ID,
   CASHFREE_ENVIRONMENT,
@@ -54,35 +56,50 @@ const getCashfreeHeaders = () => {
 
   return {
     "Content-Type": "application/json",
+    "x-api-version": "2023-08-01",
     "x-client-id": CASHFREE_APP_ID,
     "x-client-secret": CASHFREE_SECRET_KEY,
   };
 };
 
 const createCashfreeOrder = async ({ orderId, amount, customerDetails, returnUrl }) => {
+  // Build customer details object - include all available values
+  const customerDetailsObj = {
+    customer_id: String(customerDetails.id),
+    customer_name: customerDetails.name,
+    customer_phone: customerDetails.phone,
+  };
+  
+  // Add email - this is important for fraud detection (Sardine)
+  if (customerDetails.email) {
+    customerDetailsObj.customer_email = customerDetails.email;
+  }
+
   const payload = {
     order_id: orderId,
     order_amount: Number(amount.toFixed(2)),
     order_currency: "INR",
-    order_note: "Zoyka order payment",
-    customer_details: {
-      customer_id: customerDetails.id,
-      customer_name: customerDetails.name,
-      customer_email: customerDetails.email || undefined,
-      customer_phone: customerDetails.phone,
+    customer_details: customerDetailsObj,
+    order_meta: {
+      return_url: returnUrl,
+      notify_url: `${FRONTEND_BASE_URL.replace(/\/$/, "")}/api/payment/webhook`, // Optional webhook
     },
-    return_url: returnUrl,
   };
 
-  const response = await fetch(`${getCashfreeBaseUrl()}/pg/orders`, {
+  const url = `${getCashfreeBaseUrl()}/pg/orders`;
+  const headers = getCashfreeHeaders();
+
+  const response = await fetch(url, {
     method: "POST",
-    headers: getCashfreeHeaders(),
+    headers: headers,
     body: JSON.stringify(payload),
   });
 
   const data = await response.json();
 
-  if (!response.ok || (data.status !== "OK" && data.status !== "SUCCESS")) {
+  // Check if the order was created successfully
+  // Cashfree returns order_status: "ACTIVE" for successful orders
+  if (!response.ok || !data.order_id || data.order_status !== "ACTIVE") {
     throw new ApiError(
       502,
       data.message || data.error_description || "Cashfree order creation failed"
@@ -90,9 +107,8 @@ const createCashfreeOrder = async ({ orderId, amount, customerDetails, returnUrl
   }
 
   return {
-    paymentLink: data.payment_link,
-    orderToken: data.order_token ?? null,
-    cashfreeOrderId: data.order_id ?? orderId,
+    paymentSessionId: data.payment_session_id,
+    cashfreeOrderId: data.order_id,
   };
 };
 
@@ -104,7 +120,8 @@ const fetchCashfreeOrderStatus = async (orderId) => {
 
   const data = await response.json();
 
-  if (!response.ok || (data.status !== "OK" && data.status !== "SUCCESS")) {
+  // Cashfree returns order details directly, no status field for error checking
+  if (!response.ok || !data.order_id) {
     throw new ApiError(
       502,
       data.message || data.error_description || "Unable to verify Cashfree payment status"
@@ -155,8 +172,18 @@ const mapPaymentMethod = (paymentMethod) => {
   return "COD";
 };
 
-export const checkoutCartService = async ({ userId, addressId, paymentMethod = "cod", notes }) => {
+export const checkoutCartService = async ({ userId, addressId, paymentMethod = "cod", notes, couponCode }) => {
   const address = await ensureAddressOwnership({ userId, addressId });
+
+  // Fetch user details for customer information
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, name: true, mobile: true },
+  });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
 
   const cart = await getUserCartWithItems(userId);
 
@@ -170,18 +197,53 @@ export const checkoutCartService = async ({ userId, addressId, paymentMethod = "
     throw new ApiError(400, `${outOfStockItem.product.title} has insufficient stock`);
   }
 
-  const totalAmount = cart.items.reduce(
+  const subtotal = cart.items.reduce(
     (sum, item) => sum + item.quantity * item.product.sellingPrice,
     0
   );
+
+  // Validate coupon server-side if provided
+  let couponDiscount = 0;
+  let validatedCouponCode = null;
+
+  if (couponCode) {
+    const couponResult = await validateCouponService({ code: couponCode, subtotal });
+    couponDiscount = couponResult.discount;
+    validatedCouponCode = couponResult.code;
+  }
+
+  // Shipping: free above ₹499, else ₹50 (matches invoice service constants)
+  const SHIPPING_THRESHOLD = 499;
+  const SHIPPING_CHARGE = 50;
+  const shippingCharge = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_CHARGE;
+
+  const totalAmount = Math.max(0, subtotal - couponDiscount + shippingCharge);
 
   const safePaymentMethod = mapPaymentMethod(paymentMethod);
 
   if (safePaymentMethod === "COD") {
     const createdOrders = await prisma.$transaction(async (tx) => {
       const orders = [];
+      let remainingDiscount = couponDiscount;
 
-      for (const item of cart.items) {
+      for (let i = 0; i < cart.items.length; i++) {
+        const item = cart.items[i];
+        const itemSubtotal = item.quantity * item.product.sellingPrice;
+
+        // Split coupon discount proportionally across items
+        let itemDiscount = 0;
+        if (couponDiscount > 0 && subtotal > 0) {
+          if (i === cart.items.length - 1) {
+            // Last item gets remaining to avoid rounding issues
+            itemDiscount = remainingDiscount;
+          } else {
+            itemDiscount = Math.round((itemSubtotal / subtotal) * couponDiscount * 100) / 100;
+            remainingDiscount -= itemDiscount;
+          }
+        }
+
+        const orderTotal = Math.max(0, itemSubtotal - itemDiscount);
+
         const order = await tx.order.create({
           data: {
             userId,
@@ -189,7 +251,7 @@ export const checkoutCartService = async ({ userId, addressId, paymentMethod = "
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.product.sellingPrice,
-            totalAmount: item.quantity * item.product.sellingPrice,
+            totalAmount: orderTotal,
             notes,
             status: "PLACED",
             paymentMethod: "COD",
@@ -211,7 +273,18 @@ export const checkoutCartService = async ({ userId, addressId, paymentMethod = "
           data: { stock: { decrement: item.quantity } },
         });
 
+        await createInvoiceForOrder(tx, {
+          order,
+          couponCode: validatedCouponCode,
+          couponDiscount: itemDiscount,
+        });
+
         orders.push(order);
+      }
+
+      // Increment coupon usage after successful order
+      if (validatedCouponCode) {
+        await incrementCouponUsage(tx, validatedCouponCode);
       }
 
       await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
@@ -227,10 +300,22 @@ export const checkoutCartService = async ({ userId, addressId, paymentMethod = "
 
   const customerDetails = {
     id: userId,
-    name: address.fullName,
-    email: undefined,
-    phone: address.phoneNumber,
+    name: address.fullName || user.name,
+    email: user.email, // Use user's email from database
+    phone: address.phoneNumber || user.mobile,
   };
+
+  console.log("📋 Checkout Customer Details:", {
+    fromAddress: {
+      fullName: address.fullName,
+      phoneNumber: address.phoneNumber,
+    },
+    fromUser: {
+      name: user.name,
+      mobile: user.mobile,
+    },
+    finalCustomerDetails: customerDetails,
+  });
 
   const cashfreeOrder = await createCashfreeOrder({
     orderId: sessionId,
@@ -250,20 +335,29 @@ export const checkoutCartService = async ({ userId, addressId, paymentMethod = "
         paymentMethod: safePaymentMethod,
         status: "PENDING",
         cashfreeOrderId: cashfreeOrder.cashfreeOrderId,
-        cashfreeOrderToken: cashfreeOrder.orderToken,
-        cashfreePaymentLink: cashfreeOrder.paymentLink,
         notes,
-        cartItems: cart.items.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.product.sellingPrice,
-        })),
       },
     });
 
     const orders = [];
+    let remainingDiscount = couponDiscount;
 
-    for (const item of cart.items) {
+    for (let i = 0; i < cart.items.length; i++) {
+      const item = cart.items[i];
+      const itemSubtotal = item.quantity * item.product.sellingPrice;
+
+      let itemDiscount = 0;
+      if (couponDiscount > 0 && subtotal > 0) {
+        if (i === cart.items.length - 1) {
+          itemDiscount = remainingDiscount;
+        } else {
+          itemDiscount = Math.round((itemSubtotal / subtotal) * couponDiscount * 100) / 100;
+          remainingDiscount -= itemDiscount;
+        }
+      }
+
+      const orderTotal = Math.max(0, itemSubtotal - itemDiscount);
+
       const order = await tx.order.create({
         data: {
           userId,
@@ -271,7 +365,7 @@ export const checkoutCartService = async ({ userId, addressId, paymentMethod = "
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: item.product.sellingPrice,
-          totalAmount: item.quantity * item.product.sellingPrice,
+          totalAmount: orderTotal,
           notes,
           status: "PAYMENT_PENDING",
           paymentMethod: safePaymentMethod,
@@ -285,19 +379,31 @@ export const checkoutCartService = async ({ userId, addressId, paymentMethod = "
         data: { stock: { decrement: item.quantity } },
       });
 
+      await createInvoiceForOrder(tx, {
+        order,
+        couponCode: validatedCouponCode,
+        couponDiscount: itemDiscount,
+      });
+
       orders.push(order);
     }
 
-    await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+    if (validatedCouponCode) {
+      await incrementCouponUsage(tx, validatedCouponCode);
+    }
 
-    return orders;
+    // Don't delete cart items yet - only delete after payment success
+    // await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+    return { orders, cartId: cart.id };
   });
 
   return {
-    paymentUrl: cashfreeOrder.paymentLink,
-    paymentSessionId: sessionId,
+    paymentSessionId: cashfreeOrder.paymentSessionId,
+    cashfreeSessionId: sessionId,
     amount: totalAmount,
     currency: "INR",
+    cartId: createdOrders.cartId,
   };
 };
 
@@ -339,7 +445,14 @@ export const confirmCashfreePaymentService = async ({ userId, paymentSessionId }
   const orderStatus = (statusResponse.order_status || statusResponse.payment_status || "").toString().toUpperCase();
 
   if (["PAID", "COMPLETED", "SUCCESS"].includes(orderStatus)) {
-    const confirmedOrders = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
+      // Re-check status inside transaction to prevent race with webhook
+      const freshSession = await tx.paymentSession.findUnique({
+        where: { id: session.id },
+        select: { status: true },
+      });
+      if (freshSession.status === "SUCCESS") return; // Already processed by webhook
+
       await tx.paymentSession.update({
         where: { id: session.id },
         data: { status: "SUCCESS" },
@@ -350,18 +463,33 @@ export const confirmCashfreePaymentService = async ({ userId, paymentSessionId }
         data: { status: "PLACED", paymentStatus: "SUCCESS" },
       });
 
-      return tx.order.findMany({
-        where: { paymentSessionId: session.id },
-        include: {
-          product: {
-            include: {
-              images: { orderBy: { sortOrder: "asc" }, take: 1 },
-              outlet: { select: { id: true, key: true, name: true } },
-            },
+      // Now delete cart items after successful payment
+      const firstOrder = session.orders[0];
+      if (firstOrder?.userId) {
+        const cart = await tx.cart.findUnique({
+          where: { userId: firstOrder.userId },
+        });
+        if (cart) {
+          await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+        }
+      }
+    }, {
+      maxWait: 10000, // Maximum time to wait for transaction to start (10 seconds)
+      timeout: 10000, // Maximum execution time (10 seconds)
+    });
+
+    // Fetch orders outside transaction (read-only operation doesn't need transactional guarantee)
+    const confirmedOrders = await prisma.order.findMany({
+      where: { paymentSessionId: session.id },
+      include: {
+        product: {
+          include: {
+            images: { orderBy: { sortOrder: "asc" }, take: 1 },
+            outlet: { select: { id: true, key: true, name: true } },
           },
-          address: true,
         },
-      });
+        address: true,
+      },
     });
 
     return {
@@ -372,6 +500,13 @@ export const confirmCashfreePaymentService = async ({ userId, paymentSessionId }
 
   if (["FAILED", "CANCELLED", "EXPIRED"].includes(orderStatus)) {
     await prisma.$transaction(async (tx) => {
+      // Re-check status inside transaction to prevent race with webhook
+      const freshSession = await tx.paymentSession.findUnique({
+        where: { id: session.id },
+        select: { status: true },
+      });
+      if (freshSession.status === "FAILED" || freshSession.status === "SUCCESS") return;
+
       await tx.paymentSession.update({
         where: { id: session.id },
         data: { status: "FAILED" },
@@ -388,6 +523,9 @@ export const confirmCashfreePaymentService = async ({ userId, paymentSessionId }
           data: { stock: { increment: order.quantity } },
         });
       }
+    }, {
+      maxWait: 10000,
+      timeout: 10000,
     });
 
     throw new ApiError(400, "Payment failed or was cancelled");

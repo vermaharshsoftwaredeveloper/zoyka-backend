@@ -5,6 +5,8 @@ import {
   createReviewService,
   getCustomerReviewHighlightsService,
   getProductReviewsService,
+  getUserReviewForProductService,
+  updateReviewService,
 } from "./review.service.js";
 
 const parseBody = (body) => {
@@ -42,6 +44,39 @@ export const createReview = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     message: "Review created successfully",
+    data: review,
+  });
+});
+
+export const getMyReview = asyncHandler(async (req, res) => {
+  if (!req.user?.id) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const review = await getUserReviewForProductService(req.user.id, req.params.productId);
+
+  res.status(200).json({
+    message: review ? "Review found" : "No review found",
+    data: review,
+  });
+});
+
+export const updateReview = asyncHandler(async (req, res) => {
+  if (!req.user?.id) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const payload = parseBody(req.body);
+
+  const review = await updateReviewService({
+    reviewId: req.params.reviewId,
+    userId: req.user.id,
+    productId: req.params.productId,
+    ...payload,
+  });
+
+  res.status(200).json({
+    message: "Review updated successfully",
     data: review,
   });
 });

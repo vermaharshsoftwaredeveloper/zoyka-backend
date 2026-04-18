@@ -24,38 +24,43 @@ export const listAddressesService = async (userId) => {
 };
 
 export const createAddressService = async (userId, payload) => {
-  return prisma.$transaction(async (tx) => {
-    if (payload.isDefault) {
-      await tx.address.updateMany({
-        where: { userId, isDefault: true },
-        data: { isDefault: false },
-      });
-    }
-
-    return tx.address.create({
-      data: {
-        userId,
-        ...payload,
-      },
+  // Optimize: Check if we need to update default addresses BEFORE transaction
+  if (payload.isDefault) {
+    // Update existing default addresses outside transaction for better performance
+    await prisma.address.updateMany({
+      where: { userId, isDefault: true },
+      data: { isDefault: false },
     });
+  }
+
+  // Simple create operation without complex transaction
+  return prisma.address.create({
+    data: {
+      userId,
+      ...payload,
+    },
   });
 };
 
 export const updateAddressService = async ({ userId, addressId, payload }) => {
   await ensureAddressOwnership({ userId, addressId });
 
-  return prisma.$transaction(async (tx) => {
-    if (payload.isDefault) {
-      await tx.address.updateMany({
-        where: { userId, isDefault: true },
-        data: { isDefault: false },
-      });
-    }
-
-    return tx.address.update({
-      where: { id: addressId },
-      data: payload,
+  // Optimize: Update default addresses outside transaction if needed
+  if (payload.isDefault) {
+    await prisma.address.updateMany({
+      where: { 
+        userId, 
+        isDefault: true,
+        NOT: { id: addressId } // Don't update the address we're about to update
+      },
+      data: { isDefault: false },
     });
+  }
+
+  // Simple update operation
+  return prisma.address.update({
+    where: { id: addressId },
+    data: payload,
   });
 };
 

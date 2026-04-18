@@ -7,7 +7,9 @@ import {
   signupSchema,
   // verifyLoginSchema,
   verifySignupSchema,
-  createStaffSchema
+  createStaffSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema
 } from "./auth.validation.js";
 
 const parseBody = (schema, body) => {
@@ -83,5 +85,17 @@ export const googleAuth = asyncHandler(async (req, res) => {
   const { accessToken } = req.body;
   if (!accessToken) throw new ApiError(400, "Google access token is required");
   const response = await authService.googleAuthService({ accessToken });
+  res.status(200).json(response);
+});
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const payload = parseBody(forgotPasswordSchema, req.body);
+  const response = await authService.forgotPasswordService(payload);
+  res.status(200).json(response);
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+  const payload = parseBody(resetPasswordSchema, req.body);
+  const response = await authService.resetPasswordService(payload);
   res.status(200).json(response);
 });

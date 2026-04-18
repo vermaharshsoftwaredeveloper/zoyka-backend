@@ -1,7 +1,14 @@
 import prisma from "../../config/prisma.js";
+import { cacheGet, cacheSet } from "../../utils/cache.js";
+
+const ANALYTICS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export const getAnalyticsDashboardService = async (filters) => {
     const { categoryId, regionId, startDate, endDate } = filters;
+
+    const cacheKey = `analytics:${categoryId || ''}:${regionId || ''}:${startDate || ''}:${endDate || ''}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
 
     const orderWhere = { status: 'DELIVERED' };
     const outletWhere = {};
@@ -96,7 +103,7 @@ export const getAnalyticsDashboardService = async (filters) => {
 
     const growthTrend = Object.values(growthTrendMap).sort((a, b) => a.month.localeCompare(b.month));
 
-    return {
+    const result = {
         cards: {
             totalOrders,
             totalRevenue,
@@ -116,4 +123,7 @@ export const getAnalyticsDashboardService = async (filters) => {
         topOutlets: outletProductivity,
         growthTrend
     };
+
+    cacheSet(cacheKey, result, ANALYTICS_CACHE_TTL);
+    return result;
 };

@@ -1,5 +1,8 @@
 import prisma from "../../config/prisma.js";
 import ApiError from "../../utils/api-error/index.js";
+import { cacheGet, cacheSet, cacheInvalidatePrefix } from "../../utils/cache.js";
+
+const FILTER_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 const getRatingSummary = (reviews) => {
   if (!reviews.length) {
@@ -136,18 +139,42 @@ export const listProductsService = async ({
       skip: (page - 1) * limit,
       take: limit,
       orderBy,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        specialFeatures: true,
+        material: true,
+        actualPrice: true,
+        sellingPrice: true,
+        stock: true,
+        averageRating: true,
+        totalRatingsCount: true,
         category: { select: { id: true, slug: true, name: true } },
         outlet: { select: { id: true, name: true, region: { select: { id: true, name: true } } } },
-        images: { orderBy: { sortOrder: "asc" } },
-        reviews: { select: { rating: true } },
+        images: { orderBy: { sortOrder: "asc" }, take: 3 },
       },
     }),
     prisma.product.count({ where }),
   ]);
 
   return {
-    data: products.map(toProductCard),
+    data: products.map((product) => ({
+      id: product.id,
+      title: product.title,
+      slug: product.slug,
+      description: product.description,
+      specialFeatures: product.specialFeatures,
+      material: product.material,
+      actualPrice: product.actualPrice,
+      sellingPrice: product.sellingPrice,
+      stock: product.stock,
+      category: product.category,
+      images: product.images,
+      averageRating: product.averageRating ?? 0,
+      totalRatingsCount: product.totalRatingsCount ?? 0,
+    })),
     page,
     limit,
     total,
@@ -155,51 +182,48 @@ export const listProductsService = async ({
 };
 
 export const getFilterOptionsService = async ({ departmentId } = {}) => {
+  const cacheKey = `filters:${departmentId || 'all'}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+
   const where = { isActive: true };
   if (departmentId) {
     where.category = { departmentId };
   }
 
-  const products = await prisma.product.findMany({
-    where,
-    select: {
-      material: true,
-      specialFeatures: true,
-      sellingPrice: true,
-      outlet: {
-        select: {
-          region: { select: { id: true, name: true } },
+  // Use parallel distinct queries instead of fetching ALL products
+  const [materials, features, priceRange, regionsRaw] = await Promise.all([
+    prisma.product.findMany({
+      where: { ...where, material: { not: null } },
+      select: { material: true },
+      distinct: ["material"],
+      orderBy: { material: "asc" },
+    }),
+    prisma.product.findMany({
+      where: { ...where, specialFeatures: { not: null } },
+      select: { specialFeatures: true },
+      distinct: ["specialFeatures"],
+      orderBy: { specialFeatures: "asc" },
+    }),
+    prisma.product.aggregate({
+      where,
+      _max: { sellingPrice: true },
+      _min: { sellingPrice: true },
+    }),
+    prisma.region.findMany({
+      where: {
+        outlets: {
+          some: {
+            products: { some: where },
+          },
         },
       },
-    },
-  });
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
-  // Regions from product outlets
-  const regionMap = new Map();
-  for (const p of products) {
-    const region = p.outlet?.region;
-    if (region) regionMap.set(region.id, region.name);
-  }
-  const regions = Array.from(regionMap, ([id, name]) => ({ id, name }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  // Materials
-  const materialSet = new Set();
-  for (const p of products) {
-    if (p.material) materialSet.add(p.material);
-  }
-  const materials = Array.from(materialSet).sort();
-
-  // Uses (specialFeatures)
-  const useSet = new Set();
-  for (const p of products) {
-    if (p.specialFeatures) useSet.add(p.specialFeatures);
-  }
-  const uses = Array.from(useSet).sort();
-
-  // Price ranges
-  const prices = products.map((p) => p.sellingPrice).filter(Boolean);
-  const maxProductPrice = prices.length ? Math.max(...prices) : 0;
+  const maxProductPrice = priceRange._max.sellingPrice || 0;
   const priceRanges = [];
   if (maxProductPrice > 0) {
     priceRanges.push({ label: "Under ₹500", min: 0, max: 500 });
@@ -207,13 +231,16 @@ export const getFilterOptionsService = async ({ departmentId } = {}) => {
     if (maxProductPrice > 1000) priceRanges.push({ label: "₹1000+", min: 1000, max: null });
   }
 
-  return {
-    regions,
-    materials,
-    uses,
+  const result = {
+    regions: regionsRaw,
+    materials: materials.map((m) => m.material),
+    uses: features.map((f) => f.specialFeatures),
     priceRanges,
     specials: ["Innovative", "Bestseller", "New"],
   };
+
+  cacheSet(cacheKey, result, FILTER_CACHE_TTL);
+  return result;
 };
 
 export const getProductByIdService = async (productId) => {
@@ -232,6 +259,7 @@ export const getProductByIdService = async (productId) => {
           images: { orderBy: { sortOrder: "asc" }, select: { id: true, url: true } },
         },
         orderBy: { createdAt: "desc" },
+        take: 20,
       },
       outlet: {
         select: {
@@ -249,6 +277,8 @@ export const getProductByIdService = async (productId) => {
           name: true,
           avatar: true,
           role: true,
+          location: true,
+          yearsOfExperience: true,
         },
       },
     },
@@ -273,6 +303,8 @@ export const getProductByIdService = async (productId) => {
     reviews: product.reviews,
     outlet: product.outlet,
     artisan: product.artisan,
+    producerName: product.producerName,
+    producerStory: product.producerStory,
     ...ratingSummary,
   };
 };
@@ -327,84 +359,184 @@ export const getCategoryBestsellersService = async ({ categorySlug, limit }) => 
   }));
 };
 
-// 🔥 Removed District scoring entirely
-const buildPreferenceMap = (items, weight) => {
-  const outletMap = new Map();
-  const excludedProducts = new Set();
-
-  for (const item of items) {
-    const product = item.product;
-    if (!product) continue;
-    excludedProducts.add(product.id);
-    if (product.outletId) {
-      outletMap.set(product.outletId, (outletMap.get(product.outletId) || 0) + weight);
-    }
-  }
-
-  return { outletMap, excludedProducts };
-};
-
-const mergeScoreMap = (target, source) => {
-  for (const [key, value] of source.entries()) {
-    target.set(key, (target.get(key) || 0) + value);
-  }
-};
-
 export const getTopPicksForUserService = async ({ userId, limit }) => {
+  const now = new Date();
+  const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  
   let outletScore = new Map();
+  let categoryScore = new Map();
   let excludedProducts = new Set();
 
   if (userId) {
+    // Fetch user's interaction history
     const [orders, wishlist, cart, reviews] = await Promise.all([
-      prisma.order.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
-      prisma.wishlist.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
-      prisma.cart.findUnique({ where: { userId }, select: { items: { select: { product: { select: { id: true, outletId: true } } } } } }),
-      prisma.review.findMany({ where: { userId }, select: { product: { select: { id: true, outletId: true } } } }),
+      prisma.order.findMany({ 
+        where: { userId }, 
+        select: { 
+          product: { 
+            select: { id: true, outletId: true, categoryId: true } 
+          },
+          createdAt: true,
+        } 
+      }),
+      prisma.wishlist.findMany({ 
+        where: { userId }, 
+        select: { 
+          product: { 
+            select: { id: true, outletId: true, categoryId: true } 
+          } 
+        } 
+      }),
+      prisma.cart.findUnique({ 
+        where: { userId }, 
+        select: { 
+          items: { 
+            select: { 
+              product: { 
+                select: { id: true, outletId: true, categoryId: true } 
+              } 
+            } 
+          } 
+        } 
+      }),
+      prisma.review.findMany({ 
+        where: { userId }, 
+        select: { 
+          product: { 
+            select: { id: true, outletId: true, categoryId: true } 
+          } 
+        } 
+      }),
     ]);
 
-    const sources = [
-      buildPreferenceMap(orders, 3),
-      buildPreferenceMap(wishlist, 2),
-      buildPreferenceMap(cart?.items || [], 2),
-      buildPreferenceMap(reviews, 1),
-    ];
-
-    for (const source of sources) {
-      mergeScoreMap(outletScore, source.outletMap);
-      for (const productId of source.excludedProducts) {
-        excludedProducts.add(productId);
+    // Build preference maps with weights
+    const buildUserPreferenceMap = (items, weight) => {
+      for (const item of items) {
+        const product = item.product;
+        if (!product) continue;
+        
+        excludedProducts.add(product.id); // Don't show already purchased/interacted items
+        
+        if (product.outletId) {
+          outletScore.set(product.outletId, (outletScore.get(product.outletId) || 0) + weight);
+        }
+        if (product.categoryId) {
+          categoryScore.set(product.categoryId, (categoryScore.get(product.categoryId) || 0) + weight);
+        }
       }
-    }
+    };
+
+    // Weight different interactions: Orders (highest), Wishlist, Cart, Reviews
+    buildUserPreferenceMap(orders, 5);
+    buildUserPreferenceMap(wishlist, 3);
+    buildUserPreferenceMap(cart?.items || [], 3);
+    buildUserPreferenceMap(reviews, 2);
   }
 
+  // Get top preferred outlets and categories
   const preferredOutletIds = Array.from(outletScore.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([outletId]) => outletId);
 
+  const preferredCategoryIds = Array.from(categoryScore.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([categoryId]) => categoryId);
+
+  // Fetch candidate products
   const candidates = await prisma.product.findMany({
     where: {
       isActive: true,
       stock: { gt: 0 },
       id: { notIn: Array.from(excludedProducts) },
-      ...(preferredOutletIds.length ? { outletId: { in: preferredOutletIds } } : {}),
     },
-    include: getProductCardInclude(),
-    take: limit * 4,
-    orderBy: [{ totalRatingsCount: "desc" }, { createdAt: "desc" }],
+    include: {
+      ...getProductCardInclude(),
+      orders: {
+        where: {
+          status: { in: ["PLACED", "CONFIRMED", "PACKED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"] },
+          createdAt: { gte: last30Days },
+        },
+        select: {
+          quantity: true,
+          createdAt: true,
+        },
+      },
+    },
+    take: limit * 5, // Get more candidates for better scoring
   });
 
+  // Calculate score for each candidate
   const scoredCandidates = candidates.map((product) => {
-    const outletPreference = outletScore.get(product.outletId) || 0;
-    const popularityScore = (product.averageRating || 0) * 2 + Math.log10((product.totalRatingsCount || 0) + 1);
+    let score = 0;
 
-    return { product, score: outletPreference * 1.5 + popularityScore };
+    // 1. User Preference Score (30%)
+    const outletPreference = outletScore.get(product.outletId) || 0;
+    const categoryPreference = categoryScore.get(product.categoryId) || 0;
+    const userPreferenceScore = (outletPreference + categoryPreference) * 0.3;
+
+    // 2. Popularity Score (25%) - Rating quality + quantity
+    const popularityScore = ((product.averageRating || 0) * 3 + 
+                             Math.log10((product.totalRatingsCount || 0) + 1)) * 0.25;
+
+    // 3. Sales Velocity Score (25%) - Recent sales activity
+    const orders = product.orders || [];
+    const totalRecentSales = orders.reduce((sum, o) => sum + o.quantity, 0);
+    const last7DaysSales = orders.filter(o => o.createdAt >= last7Days)
+                                  .reduce((sum, o) => sum + o.quantity, 0);
+    const salesVelocityScore = (totalRecentSales + last7DaysSales * 2) * 0.25;
+
+    // 4. Freshness Score (10%) - Boost newer products
+    const daysSinceLaunch = (now - new Date(product.createdAt)) / (1000 * 60 * 60 * 24);
+    const freshnessScore = daysSinceLaunch < 30 ? (30 - daysSinceLaunch) * 0.1 : 0;
+
+    // 5. Stock Availability Boost (10%) - Prefer well-stocked items
+    const stockScore = Math.min(product.stock / 10, 10) * 0.1;
+
+    score = userPreferenceScore + popularityScore + salesVelocityScore + 
+            freshnessScore + stockScore;
+
+    return { product, score };
   });
 
+  // Sort by score
   scoredCandidates.sort((a, b) => b.score - a.score);
 
-  let picks = scoredCandidates.slice(0, limit).map((entry) => toProductCard(entry.product));
+  // Ensure diversity - don't show too many from same category/outlet
+  const diversePicks = [];
+  const categoryCount = new Map();
+  const outletCount = new Map();
+  const MAX_PER_CATEGORY = Math.ceil(limit / 3);
+  const MAX_PER_OUTLET = Math.ceil(limit / 2);
 
+  for (const candidate of scoredCandidates) {
+    if (diversePicks.length >= limit) break;
+
+    const catCount = categoryCount.get(candidate.product.categoryId) || 0;
+    const outCount = outletCount.get(candidate.product.outletId) || 0;
+
+    if (catCount < MAX_PER_CATEGORY && outCount < MAX_PER_OUTLET) {
+      diversePicks.push(candidate);
+      categoryCount.set(candidate.product.categoryId, catCount + 1);
+      outletCount.set(candidate.product.outletId, outCount + 1);
+    }
+  }
+
+  // If we still need more products, add highest scoring ones
+  if (diversePicks.length < limit) {
+    for (const candidate of scoredCandidates) {
+      if (diversePicks.length >= limit) break;
+      if (!diversePicks.includes(candidate)) {
+        diversePicks.push(candidate);
+      }
+    }
+  }
+
+  let picks = diversePicks.slice(0, limit).map((entry) => toProductCard(entry.product));
+
+  // Fallback if not enough picks
   if (picks.length < limit) {
     const fallbackProducts = await prisma.product.findMany({
       where: {
@@ -413,7 +545,11 @@ export const getTopPicksForUserService = async ({ userId, limit }) => {
         id: { notIn: [...Array.from(excludedProducts), ...picks.map((item) => item.id)] },
       },
       include: getProductCardInclude(),
-      orderBy: [{ totalRatingsCount: "desc" }, { createdAt: "desc" }],
+      orderBy: [
+        { averageRating: "desc" },
+        { totalRatingsCount: "desc" },
+        { createdAt: "desc" },
+      ],
       take: limit - picks.length,
     });
     picks = [...picks, ...fallbackProducts.map((item) => toProductCard(item))];
@@ -423,39 +559,141 @@ export const getTopPicksForUserService = async ({ userId, limit }) => {
 };
 
 export const getBestsellersByDepartmentService = async (departmentId, limit) => {
+  // Get date ranges for recency weighting
+  const now = new Date();
+  const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  // Get all products in department with order data
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
+      stock: { gt: 0 }, // Only in-stock items
       category: {
         departmentId: departmentId,
+        isActive: true,
       },
     },
-    include: getProductCardInclude(),
-    orderBy: [
-      { totalRatingsCount: "desc" },
-      { averageRating: "desc" },
-    ],
-    take: limit,
+    include: {
+      ...getProductCardInclude(),
+      orders: {
+        where: {
+          status: { in: ["PLACED", "CONFIRMED", "PACKED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"] },
+          createdAt: { gte: last30Days }, // Last 30 days
+        },
+        select: {
+          quantity: true,
+          createdAt: true,
+          totalAmount: true,
+        },
+      },
+    },
   });
 
-  return products.map(toProductCard);
+  // Calculate scores for each product
+  const scoredProducts = products.map(product => {
+    const orders = product.orders || [];
+    
+    // Sales metrics
+    const totalQuantitySold = orders.reduce((sum, o) => sum + o.quantity, 0);
+    const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+    const recentSales = orders.filter(o => o.createdAt >= last7Days).length;
+    
+    // Popularity metrics
+    const ratingScore = (product.averageRating || 0) * (product.totalRatingsCount || 0);
+    
+    // Calculate composite score
+    // Weights: Sales Volume (40%), Revenue (20%), Recent Activity (25%), Ratings (15%)
+    const salesScore = totalQuantitySold * 0.4;
+    const revenueScore = (totalRevenue / 100) * 0.2; // Normalize revenue
+    const recencyScore = recentSales * 5 * 0.25; // Weight recent sales heavily
+    const popularityScore = (ratingScore / 10) * 0.15;
+    
+    const finalScore = salesScore + revenueScore + recencyScore + popularityScore;
+
+    return {
+      product,
+      score: finalScore,
+      totalSoldQuantity: totalQuantitySold,
+      salesVelocity: recentSales, // Sales in last 7 days
+    };
+  });
+
+  // Sort by score and return top items
+  scoredProducts.sort((a, b) => b.score - a.score);
+
+  return scoredProducts.slice(0, limit).map(item => ({
+    ...toProductCard(item.product),
+    totalSoldQuantity: item.totalSoldQuantity,
+    salesVelocity: item.salesVelocity,
+  }));
 };
 
 export const getBestsellersByOutletService = async (outletId, limit) => {
+  // Get date ranges for recency weighting
+  const now = new Date();
+  const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  // Get all products from outlet with order data
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
+      stock: { gt: 0 }, // Only in-stock items
       outletId: outletId,
     },
-    include: getProductCardInclude(),
-    orderBy: [
-      { totalRatingsCount: "desc" },
-      { averageRating: "desc" },
-    ],
-    take: limit,
+    include: {
+      ...getProductCardInclude(),
+      orders: {
+        where: {
+          status: { in: ["PLACED", "CONFIRMED", "PACKED", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"] },
+          createdAt: { gte: last30Days }, // Last 30 days
+        },
+        select: {
+          quantity: true,
+          createdAt: true,
+          totalAmount: true,
+        },
+      },
+    },
   });
 
-  return products.map(toProductCard);
+  // Calculate scores for each product
+  const scoredProducts = products.map(product => {
+    const orders = product.orders || [];
+    
+    // Sales metrics
+    const totalQuantitySold = orders.reduce((sum, o) => sum + o.quantity, 0);
+    const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+    const recentSales = orders.filter(o => o.createdAt >= last7Days).length;
+    
+    // Popularity metrics
+    const ratingScore = (product.averageRating || 0) * (product.totalRatingsCount || 0);
+    
+    // Calculate composite score
+    const salesScore = totalQuantitySold * 0.4;
+    const revenueScore = (totalRevenue / 100) * 0.2;
+    const recencyScore = recentSales * 5 * 0.25;
+    const popularityScore = (ratingScore / 10) * 0.15;
+    
+    const finalScore = salesScore + revenueScore + recencyScore + popularityScore;
+
+    return {
+      product,
+      score: finalScore,
+      totalSoldQuantity: totalQuantitySold,
+      salesVelocity: recentSales,
+    };
+  });
+
+  // Sort by score and return top items
+  scoredProducts.sort((a, b) => b.score - a.score);
+
+  return scoredProducts.slice(0, limit).map(item => ({
+    ...toProductCard(item.product),
+    totalSoldQuantity: item.totalSoldQuantity,
+    salesVelocity: item.salesVelocity,
+  }));
 };
 
 export const getSimilarProductsService = async (productId, limit = 6) => {

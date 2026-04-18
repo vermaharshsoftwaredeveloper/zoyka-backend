@@ -7,85 +7,42 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  USER
-  ADMIN
-  MANAGER
-  PRODUCER
-  ARTISAN
-  FARMER
-  KITCHEN
-}
-
-enum OtpPurpose {
-  SIGNUP
-  LOGIN
-}
-
-enum AddressType {
-  HOME
-  WORK
-  OTHER
-}
-
-enum OrderStatus {
-  PAYMENT_PENDING
-  PLACED
-  CONFIRMED
-  PACKED
-  SHIPPED
-  OUT_FOR_DELIVERY
-  DELIVERED
-  CANCELLED
-}
-
 model Outlet {
-  id          String    @id @default(uuid())
-  key         String    @unique
-  name        String
-  description String?
-  imageUrl    String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  products    Product[]
-
-  monthlyCapacity Int?
-  qualityScore    Float?  @default(0)
-  address         String?
-  location        String?
-
-  noOfArtisans Int?
-
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-
-  ownerId String?
-  owner   User?   @relation("OutletOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-
-  managerId String? @unique
-  manager   User?   @relation("OutletManager", fields: [managerId], references: [id], onDelete: SetNull)
-
-  parentOutletId String?
-  parentOutlet   Outlet?  @relation("OutletChildren", fields: [parentOutletId], references: [id], onDelete: SetNull)
-  childOutlets   Outlet[] @relation("OutletChildren")
-
-  regionId String?
-  region   Region? @relation(fields: [regionId], references: [id], onDelete: SetNull)
-
-  productionBatches ProductionBatch[]
+  id                String            @id @default(uuid())
+  key               String            @unique
+  name              String
+  description       String?
+  isActive          Boolean           @default(true)
+  regionId          String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  ownerId           String?
+  address           String?
+  categoryId        String?
+  monthlyCapacity   Int?
+  qualityScore      Float?            @default(0)
+  imageUrl          String?
+  departmentId      String?
+  artisansCount     Int?              @default(0)
+  managerId         String?           @unique
+  location          String?
+  noOfArtisans      Int?
+  parentOutletId    String?
+  category          Category?         @relation(fields: [categoryId], references: [id])
+  department        Department?       @relation(fields: [departmentId], references: [id])
+  manager           User?             @relation("OutletManager", fields: [managerId], references: [id])
+  owner             User?             @relation("OutletOwner", fields: [ownerId], references: [id])
+  region            Region?           @relation(fields: [regionId], references: [id])
   payouts           Payout[]
-
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id])
-
-  artisansCount Int? @default(0)
+  products          Product[]
+  productionBatches ProductionBatch[]
+  bulkInquiries     BulkOrderInquiry[]
 
   @@index([isActive])
   @@index([regionId])
   @@index([ownerId])
   @@index([departmentId])
-  @@index([parentOutletId])
+  @@index([parentOutletId], map: "Outlet_parentOutletId_index")
 }
 
 model Testimonial {
@@ -138,84 +95,76 @@ model Banner {
 }
 
 model User {
-  id                String      @id @default(uuid())
-  email             String      @unique
+  id                String                       @id @default(uuid())
+  email             String                       @unique
   password          String?
-  googleId          String?     @unique
-  authProvider      String      @default("local")
-  createdAt         DateTime    @default(now())
-  isEmailVerified   Boolean     @default(false)
-  mobile            String?     @unique
+  createdAt         DateTime                     @default(now())
+  isEmailVerified   Boolean                      @default(false)
+  mobile            String?                      @unique
   name              String
-  updatedAt         DateTime    @updatedAt
+  updatedAt         DateTime                     @updatedAt
   avatar            String?
-  role              Role        @default(USER)
   otp               String?
   otpExpiry         DateTime?
   otpPurpose        OtpPurpose?
   refreshToken      String?
-  yearsOfExperience Int?
-  location          String?
-  isActive          Boolean     @default(true)
-  joiningDate       DateTime    @default(now())
+  role              Role                         @default(USER)
   bankAccountNo     String?
-  bankName          String?
   bankIfscCode      String?
-
-  addresses       Address[]
-  bulkInquiries   BulkOrderInquiry[]
-  cart            Cart?
-  contactQueries  ContactUsQuery[]
-  orders          Order[]
-  paymentSessions PaymentSession[]
-  helpRequests    PaymentDeliveryHelpRequest[]
-  reviews         Review[]
-  wishlist        Wishlist[]
-  managedOutlet   Outlet?                      @relation("OutletManager")
-
-  productsAsArtisan Product[] @relation("ProductArtisan")
-  ownedOutlets      Outlet[]  @relation("OutletOwner")
+  bankName          String?
+  isActive          Boolean                      @default(true)
+  joiningDate       DateTime                     @default(now())
+  location          String?
+  yearsOfExperience Int?
+  authProvider      String                       @default("local")
+  googleId          String?                      @unique
+  addresses          Address[]
+  bulkInquiries      BulkOrderInquiry[]
+  cart               Cart?
+  contactQueries     ContactUsQuery[]
+  orders             Order[]
+  paymentSessions   PaymentSession[]
+  managedOutlet      Outlet?                        @relation("OutletManager")
+  ownedOutlets       Outlet[]                     @relation("OutletOwner")
+  helpRequests      PaymentDeliveryHelpRequest[]
+  productsAsArtisan Product[]                    @relation("ProductArtisan")
+  reviews           Review[]
+  wishlist          Wishlist[]
+  invoices          Invoice[]
 
   @@index([isEmailVerified])
 }
 
 model Product {
-  id          String  @id @default(uuid())
-  title       String
-  slug        String  @unique
-  description String?
-
-  specialFeatures String? @db.Text
-  material        String?
-
-  price         Float?
-  actualPrice   Float
-  sellingPrice  Float
-  district      String?
-  producerName  String?
-  producerStory String? @db.Text
-  stock         Int     @default(0)
-
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-
-  outletId String?
-  outlet   Outlet? @relation(fields: [outletId], references: [id], onDelete: SetNull)
-
-  artisanId String
-  artisan   User   @relation("ProductArtisan", fields: [artisanId], references: [id], onDelete: Restrict)
-
-  images    ProductImage[]
-  reviews   Review[]
-  wishlist  Wishlist[]
-  cartItems CartItem[]
-  orders    Order[]
-
-  averageRating     Float    @default(0)
-  totalRatingsCount Int      @default(0)
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                String         @id @default(uuid())
+  outletId          String?
+  title             String
+  slug              String         @unique
+  description       String?
+  stock             Int            @default(0)
+  categoryId        String
+  averageRating     Float          @default(0)
+  totalRatingsCount Int            @default(0)
+  isActive          Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  artisanId         String
+  material          String?
+  specialFeatures   String?
+  actualPrice       Float
+  sellingPrice      Float
+  district          String?
+  price             Float?
+  producerName      String?
+  producerStory     String?
+  cartItems         CartItem[]
+  orders            Order[]
+  artisan           User           @relation("ProductArtisan", fields: [artisanId], references: [id])
+  category          Category       @relation(fields: [categoryId], references: [id])
+  outlet            Outlet?        @relation(fields: [outletId], references: [id])
+  images            ProductImage[]
+  reviews           Review[]
+  wishlist          Wishlist[]
 
   @@unique([outletId, slug])
   @@index([outletId])
@@ -267,21 +216,30 @@ model ContactUsQuery {
 }
 
 model BulkOrderInquiry {
-  id                String   @id @default(uuid())
+  id                String                    @id @default(uuid())
   userId            String?
+  outletId          String?
   fullName          String
   companyName       String
   email             String
   phoneNumber       String
-  quantityRequired  Int
+  category          String?
+  quantityRequired  String
   city              String
   state             String
   pincode           String
   additionalDetails String?
-  createdAt         DateTime @default(now())
-  user              User?    @relation(fields: [userId], references: [id])
+  referenceImage    String?
+  status            BulkOrderInquiryStatus    @default(PENDING)
+  adminNotes        String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  user              User?                     @relation(fields: [userId], references: [id])
+  outlet            Outlet?                   @relation(fields: [outletId], references: [id])
 
   @@index([email])
+  @@index([status])
+  @@index([outletId])
   @@index([createdAt])
 }
 
@@ -325,7 +283,6 @@ model Address {
   updatedAt       DateTime         @updatedAt
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders          Order[]
-  paymentSessions PaymentSession[]
 
   @@index([userId])
 }
@@ -365,113 +322,85 @@ model CartItem {
   @@index([cartId])
 }
 
-enum PaymentMethod {
-  COD
-  CARD
-  UPI
-}
-
-enum PaymentStatus {
-  NOT_REQUIRED
-  PENDING
-  SUCCESS
-  FAILED
-}
-
-model PaymentSession {
-  id                  String        @id @default(uuid())
-  userId              String
-  addressId           String
-  amount              Float
-  currency            String        @default("INR")
-  paymentMethod       PaymentMethod
-  status              PaymentStatus @default(PENDING)
-  cashfreeOrderId     String?       @unique
-  cashfreeOrderToken  String?
-  cashfreePaymentLink String?
-  notes               String?
-  cartItems           Json?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  address             Address       @relation(fields: [addressId], references: [id], onDelete: Cascade)
-  orders              Order[]
-
-  @@index([userId])
-  @@index([addressId])
-  @@index([status])
-}
-
 model Order {
-  id               String          @id @default(uuid())
-  userId           String
-  addressId        String
-  productId        String
-  status           OrderStatus     @default(PLACED)
-  paymentMethod    PaymentMethod   @default(COD)
-  paymentStatus    PaymentStatus   @default(NOT_REQUIRED)
-  paymentSessionId String?
-  quantity         Int
-  unitPrice        Float
-  totalAmount      Float
-  notes            String?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  address          Address         @relation(fields: [addressId], references: [id])
-  product          Product         @relation(fields: [productId], references: [id])
-  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paymentSession   PaymentSession? @relation(fields: [paymentSessionId], references: [id], onDelete: SetNull)
+  id                String           @id @default(uuid())
+  userId            String
+  addressId         String
+  productId         String
+  paymentSessionId  String?
+  status            OrderStatus      @default(PLACED)
+  quantity          Int
+  unitPrice         Float
+  totalAmount       Float
+  paymentMethod     String           @default("COD")
+  paymentStatus     String           @default("PENDING")
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  address           Address          @relation(fields: [addressId], references: [id])
+  product           Product          @relation(fields: [productId], references: [id])
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentSession    PaymentSession?  @relation(fields: [paymentSessionId], references: [id], onDelete: SetNull)
+  invoice           Invoice?
 
   @@index([userId])
   @@index([addressId])
   @@index([productId])
   @@index([status])
-  @@index([paymentMethod])
-  @@index([paymentStatus])
+  @@index([paymentSessionId])
 }
 
-enum DiscountType {
-  PERCENTAGE
-  FLAT
+model PaymentSession {
+  id                    String   @id @default(uuid())
+  userId                String
+  addressId             String
+  amount                Float
+  currency              String   @default("INR")
+  paymentMethod         String
+  status                String   @default("PENDING")
+  cashfreeOrderId       String   @unique
+  cashfreeOrderToken    String?
+  cashfreePaymentLink   String?
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  orders                Order[]
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([cashfreeOrderId])
 }
 
 model Region {
-  id       String  @id @default(uuid())
-  name     String  @unique
-  isActive Boolean @default(true)
-
-  state    String
-  district String
-
+  id           String      @id @default(uuid())
+  name         String      @unique
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
   departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-
-  regionHead String?
-
-  outlets Outlet[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  district     String
+  state        String
+  regionHead   String?
+  outlets      Outlet[]
+  department   Department? @relation(fields: [departmentId], references: [id])
 
   @@unique([name, district])
 }
 
 model Category {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  slug        String  @unique
-  description String?
-  imageUrl    String?
-  isActive    Boolean @default(true)
-
+  id           String      @id @default(uuid())
+  name         String      @unique
+  slug         String      @unique
+  description  String?
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
   departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-
-  products Product[]
-  outlets  Outlet[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  imageUrl     String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  outlets      Outlet[]
+  products     Product[]
 
   @@index([isActive])
   @@index([departmentId])
@@ -480,30 +409,28 @@ model Category {
 model ProductionBatch {
   id            String   @id @default(uuid())
   outletId      String
-  outlet        Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
   title         String?
   unitCount     Int
   qualityStatus String   @default("PENDING")
   isApproved    Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  outlet        Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
 
   @@index([outletId])
 }
 
 model Payout {
-  id       String @id @default(uuid())
-  outletId String
-  outlet   Outlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
-
-  ordersCount Int   @default(0)
-  grossAmount Float @default(0)
-  commission  Float @default(0)
-  amount      Float @default(0)
-
-  status    String   @default("PENDING")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  outletId    String
+  amount      Float    @default(0)
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  commission  Float    @default(0)
+  grossAmount Float    @default(0)
+  ordersCount Int      @default(0)
+  outlet      Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
 
   @@index([outletId])
 }
@@ -520,18 +447,85 @@ model SettingConfig {
 }
 
 model Department {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  slug        String  @unique
+  id          String     @id @default(uuid())
+  name        String     @unique
+  slug        String     @unique
   description String?
-  isActive    Boolean @default(true)
-
-  categories Category[]
-  regions    Region[]
-  outlets    Outlet[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  categories  Category[]
+  outlets     Outlet[]
+  regions     Region[]
 
   @@index([isActive])
+}
+
+enum Role {
+  USER
+  ADMIN
+  MANAGER
+  PRODUCER
+  ARTISAN
+  FARMER
+  KITCHEN
+}
+
+enum OtpPurpose {
+  SIGNUP
+  LOGIN
+  PASSWORD_RESET
+}
+
+enum AddressType {
+  HOME
+  WORK
+  OTHER
+}
+
+enum OrderStatus {
+  PAYMENT_PENDING
+  PLACED
+  CONFIRMED
+  PACKED
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FLAT
+}
+
+enum BulkOrderInquiryStatus {
+  PENDING
+  IN_PROGRESS
+  CONTACTED
+  COMPLETED
+  REJECTED
+}
+
+model Invoice {
+  id              String   @id @default(uuid())
+  orderId         String   @unique
+  invoiceNumber   String   @unique
+  userId          String
+  productPrice    Float
+  quantity        Int
+  subtotal        Float
+  shippingCharge  Float    @default(0)
+  gstPercent      Float    @default(0)
+  gstAmount       Float    @default(0)
+  couponCode      String?
+  couponDiscount  Float    @default(0)
+  totalAmount     Float
+  createdAt       DateTime @default(now())
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([invoiceNumber])
 }

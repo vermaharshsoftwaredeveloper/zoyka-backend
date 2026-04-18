@@ -8,20 +8,25 @@ import {
 	verifySignupOtp,
 	createStaff,
 	refreshToken,
-	googleAuth
+	googleAuth,
+	forgotPassword,
+	resetPassword
 } from "./auth.controller.js";
 import { requireAuth, authorizeRoles } from "../../middleware/auth.middleware.js";
+import { authLimiter, otpLimiter } from "../../middleware/rate-limit.middleware.js";
 
 const router = Router();
 
-router.post("/signup", signup);
-router.post("/login", login);
-router.post("/refresh", refreshToken);
-router.post("/signup/verify-otp", verifySignupOtp);
+router.post("/signup", authLimiter, signup);
+router.post("/login", authLimiter, login);
+router.post("/refresh", authLimiter, refreshToken);
+router.post("/signup/verify-otp", authLimiter, verifySignupOtp);
 // router.post("/login", requestLoginOtp);
 // router.post("/login/verify-otp", verifyLoginOtp);
-router.post("/resend-otp", resendOtp);
-router.post("/google", googleAuth);
+router.post("/resend-otp", otpLimiter, resendOtp);
+router.post("/google", authLimiter, googleAuth);
 router.post("/create-staff", requireAuth, authorizeRoles('ADMIN'), createStaff);
+router.post("/forgot-password", authLimiter, forgotPassword);
+router.post("/reset-password", authLimiter, resetPassword);
 
 export default router;

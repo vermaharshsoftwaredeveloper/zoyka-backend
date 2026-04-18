@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const otpPurposeEnum = z.enum(["SIGNUP", "LOGIN"]);
+const otpPurposeEnum = z.enum(["SIGNUP", "LOGIN", "PASSWORD_RESET"]);
 
 export const signupSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -37,4 +37,14 @@ export const createStaffSchema = z.object({
   role: z.enum(["ADMIN", "MANAGER"], {
     required_error: "Role must be ADMIN or MANAGER",
   }),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  otp: z.string().trim().length(6),
+  newPassword: z.string().min(8).max(128),
 });

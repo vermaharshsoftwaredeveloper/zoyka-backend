@@ -1,4 +1,7 @@
 import prisma from '../../config/prisma.js';
+import { cacheGet, cacheSet } from '../../utils/cache.js';
+
+const DASHBOARD_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 const calcPercChange = (current, previous) => {
     if (previous === 0) return current > 0 ? 100 : 0;
@@ -6,6 +9,10 @@ const calcPercChange = (current, previous) => {
 };
 
 export const getDashboardAggregations = async (period) => {
+    const cacheKey = `dashboard:${period || 'default'}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
     const now = new Date();
 
     const startOfToday = new Date(now.setHours(0, 0, 0, 0));
@@ -119,11 +126,11 @@ export const getDashboardAggregations = async (period) => {
         };
     });
 
-    return {
+    const result = {
         section1_overviewCards: {
             todaysOrders: { count: todayOrders, changeFromYesterdayPercent: calcPercChange(todayOrders, yesterdayOrders) },
             pendingQc: { count: todayPendingQc, changeFromYesterdayPercent: calcPercChange(todayPendingQc, yesterdayPendingQc) },
-            lowInventory: { count: lowInventoryProducts, changeFromYesterdayPercent: 0 }, // Requires cron snapshot for real %
+            lowInventory: { count: lowInventoryProducts, changeFromYesterdayPercent: 0 },
             todaysRevenue: { amount: todayRevenue, changeFromYesterdayPercent: calcPercChange(todayRevenue, yesterdayRevenue) },
             dispatchPending: { count: todayDispatchPending, changeFromYesterdayPercent: calcPercChange(todayDispatchPending, yesterdayDispatchPending) },
         },
@@ -131,4 +138,7 @@ export const getDashboardAggregations = async (period) => {
         section3_regionPerformance: regionPerformance,
         section4_topProducts: topProducts
     };
+
+    cacheSet(cacheKey, result, DASHBOARD_CACHE_TTL);
+    return result;
 };

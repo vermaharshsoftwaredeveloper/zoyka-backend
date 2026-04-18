@@ -34,6 +34,9 @@ import adminAnalyticsRoutes from "../modules/analytics/admin-analytics.routes.js
 import adminSettingRoutes from "../modules/setting/admin-setting.routes.js";
 import adminDepartmentRoutes from "../modules/department/admin-department.routes.js";
 import DepartmentRouter from "../modules/department/department.routes.js";
+import paymentRouter from "../modules/payment/payment.routes.js";
+import invoiceRouter from "../modules/invoice/invoice.routes.js";
+import couponRouter from "../modules/coupon/coupon.routes.js";
 import uploadRouter from "../modules/upload/upload.route.js";
 
 const router = Router();
@@ -48,6 +51,9 @@ router.use("/addresses", addressRouter);
 router.use("/wishlist", wishlistRouter);
 router.use("/cart", cartRouter);
 router.use("/orders", orderRouter);
+router.use("/payments", paymentRouter);
+router.use("/invoices", invoiceRouter);
+router.use("/coupons", couponRouter);
 router.use("/contact-us", contactRouter);
 router.use("/bulk-order-inquiries", bulkOrderInquiryRouter);
 router.use("/payment-delivery-help", helpRequestRouter);

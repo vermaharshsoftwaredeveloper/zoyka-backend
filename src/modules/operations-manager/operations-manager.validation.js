@@ -59,7 +59,19 @@ export const updateStockSchema = z.object({
   quantity: z.coerce.number().int().min(1),
 });
 
-const imageUrlsSchema = z.array(z.string().trim().url()).max(10);
+const imageUrlsSchema = z
+  .array(
+    z.preprocess(
+      (val) => {
+        // If it's an object with a url property, extract the url
+        if (typeof val === "object" && val !== null && val.url) return val.url;
+        // Otherwise return as-is (should be a string)
+        return val;
+      },
+      z.string().trim().url("Invalid image URL")
+    )
+  )
+  .max(10);
 
 export const createOutletProductSchema = z.object({
   // outletId: uuidSchema.optional(),

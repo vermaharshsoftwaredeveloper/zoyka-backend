@@ -4,7 +4,7 @@ const discountTypeSchema = z.enum(["PERCENTAGE", "FLAT"]);
 
 const couponDateSchema = z
   .string()
-  .datetime({ offset: true, message: "Date must be a valid ISO datetime with timezone" })
+  .datetime({ message: "Date must be a valid ISO datetime" })
   .transform((value) => new Date(value));
 
 const couponBaseSchema = z.object({

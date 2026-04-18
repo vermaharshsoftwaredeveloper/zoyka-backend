@@ -55,6 +55,7 @@ export const getAllOrdersAdminService = async (filters) => {
             orderBy: { createdAt: 'desc' },
             include: {
                 user: { select: { id: true, name: true, email: true, mobile: true } },
+                address: true, // Include full address for delivery details
                 product: {
                     select: {
                         id: true,
@@ -76,7 +77,18 @@ export const getAllOrdersAdminService = async (filters) => {
         date: order.createdAt,
         outlet: order.product.outlet?.name || "N/A",
         region: order.product.outlet?.region?.name || "N/A",
-        category: order.product.category?.name || "N/A"
+        category: order.product.category?.name || "N/A",
+        // Include address details for delivery information
+        address: order.address ? {
+            fullName: order.address.fullName,
+            phoneNumber: order.address.phoneNumber,
+            line1: order.address.line1,
+            line2: order.address.line2,
+            landmark: order.address.landmark,
+            district: order.address.district,
+            state: order.address.state,
+            pincode: order.address.pincode,
+        } : null,
     }));
 
     return {

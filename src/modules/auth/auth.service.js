@@ -283,18 +283,15 @@ export const loginService = async ({ email, password }) => {
     where: { email },
   });
 
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  if (!user.isEmailVerified) {
-    throw new ApiError(403, "Email not verified. Complete signup verification first.");
+  // Use generic message for all login failures to prevent email enumeration
+  if (!user || !user.isEmailVerified) {
+    throw new ApiError(401, "Invalid email or password");
   }
 
   const isPasswordValid = await comparePassword(password, user.password);
 
   if (!isPasswordValid) {
-    throw new ApiError(400, "Invalid email or password");
+    throw new ApiError(401, "Invalid email or password");
   }
 
   const tokens = await issueAuthTokens(user);
@@ -379,4 +376,74 @@ export const googleAuthService = async ({ accessToken }) => {
     role: user.role,
     ...tokens,
   };
+};
+
+export const forgotPasswordService = async ({ email }) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new ApiError(404, "User not found with this email");
+  }
+
+  if (!user.isEmailVerified) {
+    throw new ApiError(400, "Email not verified. Please complete signup verification first.");
+  }
+
+  const otp = getOtpForEnvironment();
+  const otpExpiry = getOtpExpiry();
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      otp,
+      otpExpiry,
+      otpPurpose: "PASSWORD_RESET",
+    },
+  });
+
+  await sendEmail({
+    email,
+    subject: "Zoyka Password Reset OTP",
+    text: `Your OTP for password reset is ${otp}. It is valid for 10 minutes.`,
+  });
+
+  return { message: "Password reset OTP sent to your email" };
+};
+
+export const resetPasswordService = async ({ email, otp, newPassword }) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (user.otpPurpose !== "PASSWORD_RESET") {
+    throw new ApiError(400, "Invalid OTP request type for password reset");
+  }
+
+  if (!user.otp || user.otp !== otp) {
+    throw new ApiError(400, "Invalid OTP");
+  }
+
+  if (!user.otpExpiry || new Date() > user.otpExpiry) {
+    throw new ApiError(400, "OTP expired. Please request a new OTP.");
+  }
+
+  const hashedPassword = await hashPassword(newPassword);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      password: hashedPassword,
+      otp: null,
+      otpExpiry: null,
+      otpPurpose: null,
+    },
+  });
+
+  return { message: "Password reset successful. You can now login with your new password." };
 };
