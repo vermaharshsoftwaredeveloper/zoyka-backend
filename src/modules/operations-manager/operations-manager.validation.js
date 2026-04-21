@@ -1,0 +1,150 @@
+import { z } from "zod";
+
+const uuidSchema = z.string().uuid("Invalid UUID");
+const requiredUuidSchema = z.string({
+  required_error: "ID is required",
+  invalid_type_error: "ID must be a string",
+}).uuid("Invalid UUID");
+
+export const filteredOrdersQuerySchema = z.object({
+  outletId: uuidSchema.optional(),
+  status: z.enum([
+    "PLACED",
+    "CONFIRMED",
+    "PACKED",
+    "SHIPPED",
+    "OUT_FOR_DELIVERY",
+    "DELIVERED",
+    "CANCELLED"
+  ]).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const listScopeQuerySchema = z.object({
+  outletId: uuidSchema.optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const dashboardQuerySchema = z.object({
+  outletId: uuidSchema.optional(),
+  lowStockThreshold: z.coerce.number().int().min(0).max(1000).default(10),
+});
+
+export const listLowStockQuerySchema = z.object({
+  outletId: uuidSchema.optional(),
+  threshold: z.coerce.number().int().min(0).max(1000).default(10),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const orderDecisionSchema = z.object({
+  decision: z.enum(["ACCEPT", "REJECT"]),
+  reason: z.string().trim().max(500).optional(),
+});
+
+export const qcDecisionSchema = z.object({
+  decision: z.enum(["PASS", "FAIL"]),
+  notes: z.string().trim().max(500).optional(),
+});
+
+export const dispatchOrderSchema = z.object({
+  notes: z.string().trim().max(500).optional(),
+  // trackingNumber here later
+});
+
+export const updateStockSchema = z.object({
+  mode: z.enum(["SET", "INCREMENT"]).default("INCREMENT"),
+  quantity: z.coerce.number().int().min(1),
+});
+
+const imageStringSchema = z.string().trim().refine(
+  (val) => {
+    try { new URL(val); return true; } catch { /* not a URL */ }
+    return val.startsWith("data:image/");
+  },
+  { message: "Must be a valid URL or base64 image" }
+);
+
+const imageUrlsSchema = z
+  .array(
+    z.preprocess(
+      (val) => {
+        if (typeof val === "object" && val !== null && val.url) return val.url;
+        return val;
+      },
+      imageStringSchema
+    )
+  )
+  .max(10);
+
+const variantSchema = z.object({
+  id: z.string().uuid().optional(), // present on update, absent on create
+  label: z.string().trim().min(1).max(120),
+  sellingPrice: z.coerce.number().min(0),
+  actualPrice: z.coerce.number().min(0),
+  stock: z.coerce.number().int().min(0).default(0),
+  isActive: z.boolean().default(true),
+  sortOrder: z.coerce.number().int().min(0).default(0),
+  // base64 or URLs for images specific to this variant
+  images: z.array(z.string()).max(10).default([]),
+});
+
+export const createOutletProductSchema = z.object({
+  // outletId: uuidSchema.optional(),
+  artisanId: requiredUuidSchema,
+  categoryId: requiredUuidSchema,
+
+  title: z.string({ required_error: "Title is required", invalid_type_error: "Title must be a string" }).trim().min(2).max(160),
+  slug: z
+    .string()
+    .trim()
+    .min(2)
+    .max(180)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug must be lowercase kebab-case")
+    .optional(),
+  description: z.string().trim().max(4000).optional(),
+
+  specialFeatures: z.string().trim().max(2000).optional(),
+  material: z.string().trim().max(255).optional(),
+
+  actualPrice: z.coerce.number().min(0),
+  sellingPrice: z.coerce.number().min(0),
+  stock: z.coerce.number().int().min(0).optional().default(0),
+
+  images: imageUrlsSchema.default([]),
+  isActive: z.boolean().default(true),
+  variants: z.array(variantSchema).max(50).default([]),
+});
+
+export const updateOutletProductSchema = z.object({
+  // outletId: uuidSchema.optional(),
+  artisanId: uuidSchema.optional(),
+  categoryId: uuidSchema.optional(),
+
+  title: z.string().trim().min(2).max(160).optional(),
+  slug: z.string().trim().min(2).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+
+  description: z.string().trim().max(4000).optional(),
+  specialFeatures: z.string().trim().max(2000).optional(),
+  material: z.string().trim().max(255).optional(),
+
+  actualPrice: z.coerce.number().min(0).optional(),
+  sellingPrice: z.coerce.number().min(0).optional(),
+
+  stock: z.coerce.number().int().min(0).optional(),
+  isActive: z.boolean().optional(),
+  images: imageUrlsSchema.optional(),
+  variants: z.array(variantSchema).max(50).optional(),
+});
+
+// export const updateOutletProductSchema = createOutletProductSchema
+//   .partial()
+//   .refine((payload) => Object.keys(payload).length > 0, {
+//     message: "At least one field is required",
+//   });
+
+export const markDeliveredSchema = z.object({
+  notes: z.string().trim().max(500).optional(),
+});
