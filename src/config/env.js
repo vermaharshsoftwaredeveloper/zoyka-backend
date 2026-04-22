@@ -51,6 +51,9 @@ if (!_handshakeKey && NODE_ENV === "production") {
 export const HANDSHAKE_KEY = _handshakeKey || "dev-only-handshake-key";
 
 // Cashfree Payment Configuration
+if (NODE_ENV === "production" && !process.env.CASHFREE_ENVIRONMENT) {
+	console.warn("WARNING: CASHFREE_ENVIRONMENT is not set. Defaulting to 'sandbox' — payments will FAIL in production!");
+}
 export const CASHFREE_ENVIRONMENT = process.env.CASHFREE_ENVIRONMENT || "sandbox";
 export const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID || "";
 export const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY || "";

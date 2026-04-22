@@ -57,8 +57,25 @@ export const getOutletDetailService = async (id) => {
 
   if (!outlet) throw new ApiError(404, "Outlet not found");
 
-  // Extract unique artisans from products
+  // Fetch all artisan sub-outlets for this store
+  const artisanSubOutlets = await prisma.outlet.findMany({
+    where: { parentOutletId: id, isActive: true },
+    select: {
+      owner: {
+        select: { id: true, name: true, avatar: true, location: true },
+      },
+    },
+  });
+
+  // Build artisan map from all sub-outlets (guaranteed presence)
   const artisanMap = new Map();
+  for (const sub of artisanSubOutlets) {
+    if (sub.owner && !artisanMap.has(sub.owner.id)) {
+      artisanMap.set(sub.owner.id, sub.owner);
+    }
+  }
+
+  // Also merge any artisans associated with products but not yet in the map
   for (const product of outlet.products) {
     if (product.artisan && !artisanMap.has(product.artisan.id)) {
       artisanMap.set(product.artisan.id, product.artisan);

@@ -518,6 +518,23 @@ export const createOutletProductService = async ({ user, payload }) => {
     throw new ApiError(400, "Product slug is required or could not be generated from title.");
   }
 
+  // Pre-upload all images OUTSIDE the transaction to avoid transaction timeout.
+  // Prisma transactions have a 5s default timeout; Supabase uploads can take 1-3s each.
+  const uploadedProductImages = [];
+  for (const [index, img] of (payload.images || []).entries()) {
+    const url = await uploadImage(img, "products", "product");
+    uploadedProductImages.push({ url, sortOrder: index });
+  }
+
+  // Pre-upload variant images outside the transaction as well
+  const uploadedVariantImages = []; // [{ variantIndex, url, sortOrder }]
+  for (const [vIdx, v] of (payload.variants || []).entries()) {
+    for (const [iIdx, img] of (v.images || []).entries()) {
+      const url = await uploadImage(img, "products", "product");
+      uploadedVariantImages.push({ variantIndex: vIdx, url, sortOrder: iIdx });
+    }
+  }
+
   try {
     return await prisma.$transaction(async (tx) => {
       const product = await tx.product.create({
@@ -537,15 +554,8 @@ export const createOutletProductService = async ({ user, payload }) => {
           producerStory: payload.producerStory,
           stock: payload.stock,
           isActive: payload.isActive,
-          ...(payload.images && payload.images.length > 0
-            ? {
-              images: {
-                create: await Promise.all(payload.images.map(async (img, index) => {
-                  const url = await uploadImage(img, "products", "product");
-                  return { url, sortOrder: index };
-                })),
-              },
-            }
+          ...(uploadedProductImages.length > 0
+            ? { images: { create: uploadedProductImages } }
             : {}),
         },
         include: PRODUCT_INCLUDE,
@@ -565,15 +575,12 @@ export const createOutletProductService = async ({ user, payload }) => {
               sortOrder: v.sortOrder ?? index,
             },
           });
-          // Upload variant-specific images
-          if (v.images && v.images.length > 0) {
-            const variantImages = await Promise.all(
-              v.images.map(async (img, i) => {
-                const url = await uploadImage(img, "products", "product");
-                return { productId: product.id, variantId: variant.id, url, sortOrder: i };
-              })
-            );
-            await tx.productImage.createMany({ data: variantImages });
+          // Attach pre-uploaded variant images
+          const variantImgRows = uploadedVariantImages
+            .filter((r) => r.variantIndex === index)
+            .map((r) => ({ productId: product.id, variantId: variant.id, url: r.url, sortOrder: r.sortOrder }));
+          if (variantImgRows.length > 0) {
+            await tx.productImage.createMany({ data: variantImgRows });
           }
         }
         // Re-fetch with variants populated
@@ -595,15 +602,32 @@ export const updateOutletProductService = async ({ user, productId, payload }) =
     throw new ApiError(403, "You do not have access to any outlets.");
   }
 
-  // 🔥 Automatically searches across ALL outlets this manager owns!
   const existing = await getScopedProductOrThrow({ productId, outletIds: availableOutletIds });
 
   const hasImages = payload.images && payload.images.length > 0;
 
+  // Pre-upload all images OUTSIDE the transaction to avoid transaction timeout.
+  let processedImages = [];
+  if (hasImages) {
+    processedImages = await Promise.all(
+      payload.images.map(async (img, index) => {
+        const url = await uploadImage(img, "products", "product");
+        return { url, sortOrder: index };
+      })
+    );
+  }
+
+  // Pre-upload variant images outside the transaction
+  const uploadedVariantImages = []; // [{ variantIndex, url, sortOrder }]
+  for (const [vIdx, v] of (payload.variants || []).entries()) {
+    for (const [iIdx, img] of (v.images || []).entries()) {
+      const url = await uploadImage(img, "products", "product");
+      uploadedVariantImages.push({ variantIndex: vIdx, url, sortOrder: iIdx });
+    }
+  }
+
   try {
     return await prisma.$transaction(async (tx) => {
-      let processedImages = [];
-
       if (hasImages) {
         // Only delete product-level images (variantId IS NULL), not variant images
         const oldImages = await tx.productImage.findMany({
@@ -612,16 +636,11 @@ export const updateOutletProductService = async ({ user, productId, payload }) =
         });
         await tx.productImage.deleteMany({ where: { productId, variantId: null } });
 
-        processedImages = await Promise.all(payload.images.map(async (img, index) => {
-          const url = await uploadImage(img, "products", "product");
-          return { url, sortOrder: index };
-        }));
-
-        // Clean up old images from storage (best-effort)
-        const newUrls = processedImages.map(i => i.url);
+        // Clean up old images from storage (best-effort, fire-and-forget)
+        const newUrls = processedImages.map((i) => i.url);
         for (const old of oldImages) {
           if (old.url && !newUrls.includes(old.url)) {
-            await deleteImage(old.url);
+            deleteImage(old.url).catch(() => {});
           }
         }
       }
@@ -640,20 +659,14 @@ export const updateOutletProductService = async ({ user, productId, payload }) =
           sellingPrice: payload.sellingPrice,
           stock: payload.stock,
           isActive: payload.isActive,
-          ...(hasImages
-            ? {
-              images: {
-                create: processedImages,
-              },
-            }
-            : {}),
+          ...(hasImages ? { images: { create: processedImages } } : {}),
         },
         include: PRODUCT_INCLUDE,
       });
 
       // Handle variants: upsert existing (by id), create new, delete removed ones
       if (payload.variants !== undefined) {
-        const incomingIds = payload.variants.filter(v => v.id).map(v => v.id);
+        const incomingIds = payload.variants.filter((v) => v.id).map((v) => v.id);
         // Delete variants not in the incoming list (cascade deletes their images too)
         await tx.productVariant.deleteMany({
           where: { productId: existing.id, id: { notIn: incomingIds } },
@@ -688,17 +701,13 @@ export const updateOutletProductService = async ({ user, productId, payload }) =
             });
             variantId = created.id;
           }
-          // Handle variant images if provided
-          if (v.images && v.images.length > 0) {
-            // Delete old variant images and re-upload
+          // Attach pre-uploaded variant images
+          const variantImgRows = uploadedVariantImages
+            .filter((r) => r.variantIndex === index)
+            .map((r) => ({ productId: existing.id, variantId, url: r.url, sortOrder: r.sortOrder }));
+          if (variantImgRows.length > 0) {
             await tx.productImage.deleteMany({ where: { variantId } });
-            const variantImages = await Promise.all(
-              v.images.map(async (img, i) => {
-                const url = await uploadImage(img, "products", "product");
-                return { productId: existing.id, variantId, url, sortOrder: i };
-              })
-            );
-            await tx.productImage.createMany({ data: variantImages });
+            await tx.productImage.createMany({ data: variantImgRows });
           }
         }
         // Re-fetch with updated variants

@@ -102,6 +102,12 @@ const createCashfreeOrder = async ({ orderId, amount, customerDetails, returnUrl
   // Check if the order was created successfully
   // Cashfree returns order_status: "ACTIVE" for successful orders
   if (!response.ok || !data.order_id || data.order_status !== "ACTIVE") {
+    console.error("[Cashfree] Order creation failed", {
+      env: CASHFREE_ENVIRONMENT,
+      url,
+      httpStatus: response.status,
+      response: data,
+    });
     throw new ApiError(
       502,
       data.message || data.error_description || "Cashfree order creation failed"

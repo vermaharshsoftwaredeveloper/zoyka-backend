@@ -1,5 +1,6 @@
 import { asyncHandler } from "../../utils/async-handler/index.js";
 import ApiError from "../../utils/api-error/index.js";
+import prisma from "../../config/prisma.js";
 import * as adminArtisanService from "./admin-artisan.service.js";
 import { createArtisanSchema, updateArtisanSchema, getArtisansQuerySchema } from "./admin-artisan.validation.js";
 
@@ -18,6 +19,19 @@ const parseSchema = (schema, data) => {
 
 export const getAllArtisansAdmin = asyncHandler(async (req, res) => {
     const filters = parseSchema(getArtisansQuerySchema, req.query);
+
+    // If the caller is a MANAGER, always scope results to their outlet only.
+    // Managers must not see artisans belonging to other stores.
+    if (req.user?.role === "MANAGER" && !filters.outletId) {
+        const outlet = await prisma.outlet.findUnique({
+            where: { managerId: req.user.id },
+            select: { id: true },
+        });
+        if (outlet) {
+            filters.outletId = outlet.id;
+        }
+    }
+
     const artisans = await adminArtisanService.getAllArtisansAdminService(filters);
     res.status(200).json({ success: true, data: artisans });
 });

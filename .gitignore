@@ -5,3 +5,16 @@ node_modules
 /src/generated/prisma
 
 /src/generated/prisma
+
+# Documentation and status files
+*_COMPLETE.md
+*_REPORT.md
+*_CHECKLIST.md
+*_SUMMARY.md
+*_REFERENCE.md
+*_GUIDE.md
+*_VERIFICATION.md
+PAYMENT_*.md
+CASHFREE_*.md
+SETUP_*.md
+IMPLEMENTATION_*.md

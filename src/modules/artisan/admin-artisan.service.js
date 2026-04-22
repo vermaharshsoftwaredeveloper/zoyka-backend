@@ -93,55 +93,38 @@ export const createArtisanService = async (data) => {
         // Determine the true parent: if the given outlet is itself a child, use its parent as root
         const parentId = existingOutlet.parentOutletId ?? existingOutlet.id;
 
-        // Check if this artisan already has a sub-outlet under the same parent (avoid duplicates)
-        const existingChildOutlet = await prisma.outlet.findFirst({
-            where: { ownerId: user.id, parentOutletId: parentId },
+        // If user already exists (found by email/mobile) AND they already have a sub-outlet
+        // under this parent, stop here — adding the same artisan twice would silently overwrite data.
+        if (user) {
+            const existingChildOutlet = await prisma.outlet.findFirst({
+                where: { ownerId: user.id, parentOutletId: parentId },
+            });
+            if (existingChildOutlet) {
+                throw new ApiError(409, "This artisan is already added to your store. Edit them instead of adding again.");
+            }
+        }
+
+        // First time adding this artisan to the store — create a child sub-outlet.
+        // NEVER modify the parent outlet (it belongs to the manager, not the artisan).
+        const parentOutlet = await prisma.outlet.findUnique({ where: { id: parentId } });
+        outlet = await prisma.outlet.create({
+            data: {
+                name: parentOutlet?.name ?? existingOutlet.name,
+                key: `${generateKey(parentOutlet?.name ?? existingOutlet.name)}-${Date.now()}`,
+                parentOutletId: parentId,
+                ownerId: user.id,
+                managerId: null, // sub-outlets are NOT manager outlets
+                monthlyCapacity: data.monthlyCapacity ?? existingOutlet.monthlyCapacity,
+                address: data.address ?? existingOutlet.address,
+                categoryId: data.categoryId ?? existingOutlet.categoryId,
+                regionId: data.regionId ?? existingOutlet.regionId,
+            },
             include: {
                 owner: { select: { name: true, email: true, mobile: true, yearsOfExperience: true, avatar: true } },
                 category: { select: { id: true, name: true } },
                 region: { select: { id: true, name: true } }
             }
         });
-
-        if (existingChildOutlet) {
-            // Artisan already linked to this store — just update their sub-outlet details
-            outlet = await prisma.outlet.update({
-                where: { id: existingChildOutlet.id },
-                data: {
-                    monthlyCapacity: data.monthlyCapacity ?? existingChildOutlet.monthlyCapacity,
-                    address: data.address ?? existingChildOutlet.address,
-                    categoryId: data.categoryId ?? existingChildOutlet.categoryId,
-                    regionId: data.regionId ?? existingChildOutlet.regionId,
-                },
-                include: {
-                    owner: { select: { name: true, email: true, mobile: true, yearsOfExperience: true, avatar: true } },
-                    category: { select: { id: true, name: true } },
-                    region: { select: { id: true, name: true } }
-                }
-            });
-        } else {
-            // First time adding this artisan to the store — create a child sub-outlet.
-            // NEVER modify the parent outlet (it belongs to the manager, not the artisan).
-            const parentOutlet = await prisma.outlet.findUnique({ where: { id: parentId } });
-            outlet = await prisma.outlet.create({
-                data: {
-                    name: parentOutlet?.name ?? existingOutlet.name,
-                    key: `${generateKey(parentOutlet?.name ?? existingOutlet.name)}-${Date.now()}`,
-                    parentOutletId: parentId,
-                    ownerId: user.id,
-                    managerId: null, // sub-outlets are NOT manager outlets
-                    monthlyCapacity: data.monthlyCapacity ?? existingOutlet.monthlyCapacity,
-                    address: data.address ?? existingOutlet.address,
-                    categoryId: data.categoryId ?? existingOutlet.categoryId,
-                    regionId: data.regionId ?? existingOutlet.regionId,
-                },
-                include: {
-                    owner: { select: { name: true, email: true, mobile: true, yearsOfExperience: true, avatar: true } },
-                    category: { select: { id: true, name: true } },
-                    region: { select: { id: true, name: true } }
-                }
-            });
-        }
     } else {
         outlet = await prisma.outlet.create({
             data: {
