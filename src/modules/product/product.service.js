@@ -706,7 +706,6 @@ export const getBestsellersByOutletService = async (outletId, limit) => {
 
 export const getSimilarProductsService = async (productId, limit = 6) => {
   try {
-    //  ensure limit is number
     limit = Number(limit) || 6;
 
     const currentProduct = await prisma.product.findUnique({
@@ -716,40 +715,111 @@ export const getSimilarProductsService = async (productId, limit = 6) => {
         categoryId: true,
         outletId: true,
         district: true,
+        material: true,
+        sellingPrice: true,
+        specialFeatures: true,
       },
     });
 
-    //  handle null properly
     if (!currentProduct) {
       throw new ApiError(404, "Product not found");
     }
 
-    const products = await prisma.product.findMany({
+    // Fetch candidates: same category OR same outlet OR same district OR same material
+    const candidates = await prisma.product.findMany({
       where: {
         isActive: true,
         stock: { gt: 0 },
         id: { not: productId },
-
         OR: [
           { categoryId: currentProduct.categoryId },
           { outletId: currentProduct.outletId },
-          { district: currentProduct.district },
+          ...(currentProduct.district ? [{ district: currentProduct.district }] : []),
+          ...(currentProduct.material ? [{ material: { equals: currentProduct.material, mode: "insensitive" } }] : []),
         ],
       },
       include: {
         category: { select: { id: true, slug: true, name: true } },
         images: { orderBy: { sortOrder: "asc" } },
       },
-      orderBy: [
-        { totalRatingsCount: "desc" },
-        { averageRating: "desc" },
-      ],
-      take: limit,
+      take: limit * 8, // Fetch extra candidates for scoring
     });
 
-    return products;
+    // Score each candidate for relevance
+    const priceRange = currentProduct.sellingPrice ? currentProduct.sellingPrice * 0.5 : null;
+
+    const scored = candidates.map((p) => {
+      let score = 0;
+
+      // Category match is the strongest signal (same use-case)
+      if (p.categoryId === currentProduct.categoryId) score += 10;
+
+      // Same outlet/artisan – same maker
+      if (p.outletId === currentProduct.outletId) score += 5;
+
+      // Same material – similar craftsmanship
+      if (
+        p.material &&
+        currentProduct.material &&
+        p.material.toLowerCase() === currentProduct.material.toLowerCase()
+      ) score += 4;
+
+      // Same district – regional affinity
+      if (p.district && p.district === currentProduct.district) score += 2;
+
+      // Same special feature
+      if (
+        p.specialFeatures &&
+        currentProduct.specialFeatures &&
+        p.specialFeatures.toLowerCase() === currentProduct.specialFeatures.toLowerCase()
+      ) score += 3;
+
+      // Price proximity bonus (within 50% price range)
+      if (priceRange && p.sellingPrice) {
+        const diff = Math.abs(p.sellingPrice - currentProduct.sellingPrice);
+        if (diff <= priceRange) score += 2;
+      }
+
+      // Popularity boost (normalised so it doesn't dominate)
+      score += (p.averageRating || 0) * 0.5;
+      score += Math.log10((p.totalRatingsCount || 0) + 1) * 0.5;
+
+      return { product: p, score };
+    });
+
+    // Sort by score desc, then by popularity as tie-breaker
+    scored.sort((a, b) => b.score - a.score || (b.product.totalRatingsCount || 0) - (a.product.totalRatingsCount || 0));
+
+    // Diversity: cap same-outlet/same-category items so the list isn't monotonous
+    const MAX_PER_CATEGORY = Math.ceil(limit * 0.6);
+    const MAX_PER_OUTLET = Math.ceil(limit * 0.5);
+    const categorySeen = new Map();
+    const outletSeen = new Map();
+    const result = [];
+
+    for (const { product: p } of scored) {
+      if (result.length >= limit) break;
+      const catCount = categorySeen.get(p.categoryId) || 0;
+      const outCount = outletSeen.get(p.outletId) || 0;
+      if (catCount < MAX_PER_CATEGORY && outCount < MAX_PER_OUTLET) {
+        result.push(p);
+        categorySeen.set(p.categoryId, catCount + 1);
+        outletSeen.set(p.outletId, outCount + 1);
+      }
+    }
+
+    // If still short, fill remaining slots from scored list (relax diversity)
+    if (result.length < limit) {
+      const resultIds = new Set(result.map((p) => p.id));
+      for (const { product: p } of scored) {
+        if (result.length >= limit) break;
+        if (!resultIds.has(p.id)) result.push(p);
+      }
+    }
+
+    return result;
   } catch (err) {
-    console.error(" Similar Products Service Error:", err);
+    console.error("Similar Products Service Error:", err);
     throw new ApiError(500, "Failed to fetch similar products");
   }
 };

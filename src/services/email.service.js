@@ -1,7 +1,7 @@
 import ApiError from "../utils/api-error/index.js";
 import { EMAIL_ADDRESS, EMAIL_NAME } from "../config/env.js";
 
-export const sendEmail = async ({ email, subject, text }) => {
+export const sendEmail = async ({ email, subject, text, html }) => {
   const brevoApiKey = process.env.BREVO_API_KEY;
 
   if (!brevoApiKey) {
@@ -10,6 +10,21 @@ export const sendEmail = async ({ email, subject, text }) => {
   }
 
   try {
+    const body = {
+      sender: {
+        name: EMAIL_NAME,
+        email: EMAIL_ADDRESS
+      },
+      to: [{ email: email }],
+      subject: subject,
+    };
+
+    if (html) {
+      body.htmlContent = html;
+    } else {
+      body.textContent = text;
+    }
+
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -17,15 +32,7 @@ export const sendEmail = async ({ email, subject, text }) => {
         'api-key': brevoApiKey,
         'content-type': 'application/json'
       },
-      body: JSON.stringify({
-        sender: {
-          name: EMAIL_NAME,
-          email: EMAIL_ADDRESS
-        },
-        to: [{ email: email }],
-        subject: subject,
-        textContent: text
-      })
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {

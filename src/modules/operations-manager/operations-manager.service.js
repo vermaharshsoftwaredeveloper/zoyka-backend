@@ -1,6 +1,11 @@
 import prisma from "../../config/prisma.js";
 import ApiError from "../../utils/api-error/index.js";
 import { uploadImage, deleteImage } from "../../services/upload.service.js";
+import {
+  sendOrderConfirmedEmail,
+  sendOrderShippedEmail,
+  sendOrderDeliveredEmail,
+} from "../../services/order-email.service.js";
 
 const PRODUCT_INCLUDE = {
   outlet: {
@@ -305,7 +310,7 @@ export const decideOrderService = async ({ user, outletId, orderId, decision, re
   const notesLabel = decision === "ACCEPT" ? "accepted_by" : "rejected_reason";
   const notesValue = decision === "ACCEPT" ? user.id : reason;
 
-  return prisma.order.update({
+  const updated = await prisma.order.update({
     where: { id: orderId },
     data: {
       status: nextStatus,
@@ -313,6 +318,12 @@ export const decideOrderService = async ({ user, outletId, orderId, decision, re
     },
     include: ORDER_INCLUDE,
   });
+
+  if (nextStatus === "CONFIRMED") {
+    sendOrderConfirmedEmail(updated).catch(() => {});
+  }
+
+  return updated;
 };
 
 export const listQcPendingOrdersService = async ({ user, outletId, page, limit }) => {
@@ -763,6 +774,8 @@ export const dispatchOrderService = async ({ user, orderId, payload }) => {
     include: ORDER_INCLUDE,
   });
 
+  sendOrderShippedEmail(updatedOrder).catch(() => {});
+
   return toOrderCard(updatedOrder);
 };
 
@@ -819,6 +832,8 @@ export const markOrderDeliveredService = async ({ user, orderId, payload }) => {
     },
     include: ORDER_INCLUDE,
   });
+
+  sendOrderDeliveredEmail(updatedOrder).catch(() => {});
 
   return toOrderCard(updatedOrder);
 };
